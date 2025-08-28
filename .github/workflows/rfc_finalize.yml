@@ -1,0 +1,78 @@
+name: RFC Finalize
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  finalize:
+    if: startsWith(github.event.pull_request.head.ref, 'rfc/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine RFC folder
+        id: rfc
+        run: |
+          FOLDER=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -E '^rfcs/[0-9]{4}-[^/]+/' | head -n1 | cut -d/ -f1-2)
+          echo "folder=$FOLDER" >> $GITHUB_OUTPUT
+          echo "slug=$(basename $FOLDER)" >> $GITHUB_OUTPUT
+
+      - name: Move RFC to correct folder
+        if: github.event.pull_request.merged == true
+        run: |
+          NEWFOLDER="specs/${{ steps.rfc.outputs.slug }}"
+          git mv ${{ steps.rfc.outputs.folder }} $NEWFOLDER || true
+          # update status in frontmatter
+          sed -i 's/^status:.*$/status: Accepted/' $NEWFOLDER/rfc.md
+          git commit -am "Finalize RFC ${{ steps.rfc.outputs.slug }} → Accepted"
+          git push origin HEAD:${{ github.event.pull_request.base.ref }}
+
+      - name: Move RFC to rejected folder
+        if: github.event.pull_request.merged != true
+        run: |
+          NEWFOLDER="rejected/${{ steps.rfc.outputs.slug }}"
+          git mv ${{ steps.rfc.outputs.folder }} $NEWFOLDER || true
+          sed -i 's/^status:.*$/status: Rejected/' $NEWFOLDER/rfc.md
+          git commit -am "Finalize RFC ${{ steps.rfc.outputs.slug }} → Rejected"
+          git push origin HEAD:${{ github.event.pull_request.base.ref }}
+
+      - name: Close tracking issue if merged
+        if: github.event.pull_request.merged == true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const match = body.match(/Tracking Issue.*#(\d+)/i);
+            if (match) {
+              const issue_number = parseInt(match[1], 10);
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                body: `✅ RFC merged and moved to /specs.`
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                state: 'closed'
+              });
+            }
+
+      - name: Delete RFC branch
+        run: |
+          git push origin --delete ${{ github.event.pull_request.head.ref }} || true
