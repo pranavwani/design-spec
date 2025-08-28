@@ -99,8 +99,22 @@ jobs:
               `| **Supersedes** | ${fm.supersedes || ''} |`
             ].join('\n');
 
+            // Choose a status badge
+            const status = fm.status || 'Draft';
+            let badge = '';
+            if (status.toLowerCase() === 'draft') {
+              badge = '![Status: Draft](https://img.shields.io/badge/Status-Draft-yellow)';
+            } else if (status.toLowerCase() === 'accepted') {
+              badge = '![Status: Accepted](https://img.shields.io/badge/Status-Accepted-brightgreen)';
+            } else if (status.toLowerCase() === 'rejected') {
+              badge = '![Status: Rejected](https://img.shields.io/badge/Status-Rejected-red)';
+            }
+
+            // Build body
             const body = [
               `# RFC Metadata`,
+              ``,
+              `${badge}`,
               ``,
               table,
               ``,
