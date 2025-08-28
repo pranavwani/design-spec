@@ -20,23 +20,20 @@ jobs:
 
       - name: Generate RFC Index
         run: |
-          OUT="RFC Index\n===========\n"
+          OUT="# RFC Index\n"
           OUT="$OUT\n\n# Draft RFCs\n"
           OUT="$OUT\n| ID | Title | Authors | Status |"
           OUT="$OUT\n|----|-------|---------|--------|"
 
-          # Drafts
           for file in $(find rfcs -name rfc.md 2>/dev/null | sort); do
             ID=$(grep '^id:' $file | cut -d: -f2- | xargs)
             TITLE=$(grep '^title:' $file | cut -d: -f2- | xargs)
             STATUS=$(grep '^status:' $file | cut -d: -f2- | xargs)
             AUTHORS=$(grep '^authors:' $file | cut -d: -f2- | sed 's/\[//;s/\]//;s/,/ /g' | xargs)
-
             RELATIVE=$(echo $file | sed 's|^|./|')
             OUT="$OUT\n| [$ID]($RELATIVE) | $TITLE | $AUTHORS | $STATUS |"
           done
 
-          # Accepted
           OUT="$OUT\n\n# Accepted RFCs\n"
           OUT="$OUT\n| ID | Title | Authors | Status |"
           OUT="$OUT\n|----|-------|---------|--------|"
@@ -46,12 +43,10 @@ jobs:
             TITLE=$(grep '^title:' $file | cut -d: -f2- | xargs)
             STATUS=$(grep '^status:' $file | cut -d: -f2- | xargs)
             AUTHORS=$(grep '^authors:' $file | cut -d: -f2- | sed 's/\[//;s/\]//;s/,/ /g' | xargs)
-
             RELATIVE=$(echo $file | sed 's|^|./|')
             OUT="$OUT\n| [$ID]($RELATIVE) | $TITLE | $AUTHORS | $STATUS |"
           done
 
-          # Rejected
           OUT="$OUT\n\n# Rejected RFCs\n"
           OUT="$OUT\n| ID | Title | Authors | Status |"
           OUT="$OUT\n|----|-------|---------|--------|"
@@ -61,7 +56,6 @@ jobs:
             TITLE=$(grep '^title:' $file | cut -d: -f2- | xargs)
             STATUS=$(grep '^status:' $file | cut -d: -f2- | xargs)
             AUTHORS=$(grep '^authors:' $file | cut -d: -f2- | sed 's/\[//;s/\]//;s/,/ /g' | xargs)
-
             RELATIVE=$(echo $file | sed 's|^|./|')
             OUT="$OUT\n| [$ID]($RELATIVE) | $TITLE | $AUTHORS | $STATUS |"
           done
