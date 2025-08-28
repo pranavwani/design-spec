@@ -1,0 +1,44 @@
+name: "New RFC"
+description: "Propose a new RFC; this will scaffold a branch and a draft PR."
+title: "[RFC]: <short title>"
+labels: ["rfc"]
+body:
+  - type: input
+    id: short_title
+    attributes:
+      label: Short Title
+      description: A concise title for the RFC.
+      placeholder: "Unified Auth Gateway"
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One-paragraph summary of the RFC.
+      placeholder: "What problem does this solve? High-level approach?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why now? Who benefits? Alternatives?
+      placeholder: "Why is this needed and what are success criteria?"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: doc_set
+    attributes:
+      label: Doc Set
+      description: Choose the docs to scaffold (you can add more later if allowed).
+      options:
+        - minimal (rfc.md, hld.md, lld.md)
+        - standard (minimal + api.md, db.md, infra.md, security.md)
+        - full (standard + integration.md, perf.md, test.md)
+      default: 1
+    validations:
+      required: true
