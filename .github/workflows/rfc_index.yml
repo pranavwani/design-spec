@@ -29,7 +29,6 @@ jobs:
           yq --version
 
       - name: Generate RFC Index (Draft / Accepted / Rejected)
-        id: gen
         shell: bash
         run: |
           set -euo pipefail
@@ -39,16 +38,15 @@ jobs:
             echo "| ID | Title | Authors | Status |"
             echo "|----|-------|---------|--------|"
 
-            # find .md files named rfc.md under the root (ignore if none)
+            # find rfc.md under the root; ignore if none
             while IFS= read -r -d '' file; do
-              # Frontmatter fields (fall back to sensible defaults)
-              ID=$(yq '.id // ""' "$file" | tr -d '"')
-              TITLE=$(yq '.title // ""' "$file" | sed 's/^"//;s/"$//')
-              STATUS=$(yq '.status // "Draft"' "$file" | tr -d '"')
-              # Join authors array with spaces (or blank)
-              AUTHORS=$(yq -o=tsv '.authors // [] | .[]' "$file" 2>/dev/null | paste -sd' ' - || true)
+              # Read ONLY the YAML front-matter
+              ID=$(yq eval --front-matter=extract '.id // ""' "$file" | tr -d '"')
+              TITLE=$(yq eval --front-matter=extract '.title // ""' "$file" | sed 's/^"//;s/"$//')
+              STATUS=$(yq eval --front-matter=extract '.status // "Draft"' "$file" | tr -d '"')
+              # Join authors array with spaces (fallback empty)
+              AUTHORS=$(yq eval --front-matter=extract -o=tsv '.authors // [] | .[]' "$file" 2>/dev/null | paste -sd' ' - || true)
 
-              # make relative link
               RELATIVE="./${file}"
               echo "| [$ID]($RELATIVE) | $TITLE | $AUTHORS | $STATUS |"
             done < <(find "$root" -type f -name rfc.md -print0 2>/dev/null | sort -z)
