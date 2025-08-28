@@ -89,21 +89,21 @@ jobs:
           set -euo pipefail
           git mv "${{ steps.rfc.outputs.src }}" "${{ steps.rfc.outputs.acc }}"
           FILE="${{ steps.rfc.outputs.acc }}/rfc.md"
-          # status
+          # update status
           if grep -q '^status:' "$FILE"; then
             sed -i 's/^status:.*/status: Accepted/' "$FILE"
           else
             awk 'NR==1{print "status: Accepted"}1' "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
           fi
-          # last_modified
+          # update last_modified
           if grep -q '^last_modified:' "$FILE"; then
             sed -i "s/^last_modified:.*/last_modified: $(date +%F)/" "$FILE"
           else
             sed -i "1a last_modified: $(date +%F)" "$FILE"
           fi
           git add -A
-          git commit -m "Finalize RFC ${{ steps.rfc.outputs.slug }} → Accepted"
-          git push origin HEAD
+          git commit -m "Finalize RFC ${{ steps.rfc.outputs.slug }} → Accepted" || true
+          git push origin HEAD:${{ github.event.pull_request.base.ref }}
 
       - name: Reject — move to rejected and update status
         if: github.event.pull_request.merged != true
@@ -123,8 +123,8 @@ jobs:
             sed -i "1a last_modified: $(date +%F)" "$FILE"
           fi
           git add -A
-          git commit -m "Finalize RFC ${{ steps.rfc.outputs.slug }} → Rejected"
-          git push origin HEAD
+          git commit -m "Finalize RFC ${{ steps.rfc.outputs.slug }} → Rejected" || true
+          git push origin HEAD:${{ github.event.pull_request.base.ref }}
 
       - name: Close tracking issue if merged
         if: github.event.pull_request.merged == true
