@@ -1,15 +1,10 @@
 # RFC Index
 
 ## Draft RFCs
-| ID | Title | Authors | Status |
-|----|-------|---------|--------|
-| [0001](./rfcs/0001-testing-summary/rfc.md) | testing
-### Summary | pranavwani | Draft |
+_None yet_
 
 ## Accepted RFCs
-| ID | Title | Authors | Status |
-|----|-------|---------|--------|
+_None yet_
 
 ## Rejected RFCs
-| ID | Title | Authors | Status |
-|----|-------|---------|--------|
+_None yet_
