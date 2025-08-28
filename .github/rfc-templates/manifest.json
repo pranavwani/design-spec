@@ -1,0 +1,12 @@
+{
+  "allowed": [
+    "rfc.md", "hld.md", "lld.md", "api.md",
+    "db.md", "infra.md", "security.md",
+    "integration.md", "perf.md", "test.md"
+  ],
+  "requiredBySet": {
+    "minimal": ["rfc.md", "hld.md", "lld.md"],
+    "standard": ["rfc.md", "hld.md", "lld.md", "api.md", "db.md", "infra.md", "security.md"],
+    "full": ["rfc.md", "hld.md", "lld.md", "api.md", "db.md", "infra.md", "security.md", "integration.md", "perf.md", "test.md"]
+  }
+}
