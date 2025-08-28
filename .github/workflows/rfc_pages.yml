@@ -1,14 +1,10 @@
 name: Publish RFCs to GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "RFC_INDEX.md"
-      - "rfcs/**"
-      - "specs/**"
-      - "rejected/**"
+  workflow_run:
+    workflows: ["RFC Index Generator"]
+    types:
+      - completed
   workflow_dispatch: {}
 
 permissions:
@@ -18,12 +14,12 @@ permissions:
 
 jobs:
   build:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Build static site with MkDocs (very simple)
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -52,6 +48,8 @@ jobs:
             - tables
             - admonition
             - codehilite
+          plugins:
+            - search
           EOF
 
       - name: Build site
