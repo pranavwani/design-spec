@@ -1,25 +1,27 @@
 name: RFC Index Generator
 
 on:
-  push:
-    paths:
-      - "specs/**"
-      - "rejected/**"
-      - "rfcs/**"
+  workflow_run:
+    workflows: ["RFC Finalize"]   # ← only after finalize completes
+    types: [completed]
   workflow_dispatch: {}
 
 permissions:
   contents: write
 
+concurrency:
+  group: rfc-index
+  cancel-in-progress: false
+    
 jobs:
   index:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    outputs:
-      has_any: ${{ steps.scan.outputs.has_any }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # Ensure roots always exist so downstream steps never explode
       - name: Ensure folders
         run: |
           mkdir -p rfcs specs rejected
@@ -29,20 +31,15 @@ jobs:
           sudo wget -q https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64 -O /usr/local/bin/yq
           sudo chmod +x /usr/local/bin/yq
 
-      - name: Scan content counts
+      - name: Count content
         id: scan
         shell: bash
         run: |
           set -euo pipefail
-          DRAFTS=$(find rfcs -type f -name rfc.md 2>/dev/null | wc -l | xargs)
-          ACCEPTED=$(find specs -type f -name rfc.md 2>/dev/null | wc -l | xargs)
-          REJECTED=$(find rejected -type f -name rfc.md 2>/dev/null | wc -l | xargs)
-          HAS_ANY=false
-          if [ "$DRAFTS" != "0" ] || [ "$ACCEPTED" != "0" ] || [ "$REJECTED" != "0" ]; then HAS_ANY=true; fi
-          echo "drafts=$DRAFTS"   >> $GITHUB_OUTPUT
-          echo "accepted=$ACCEPTED" >> $GITHUB_OUTPUT
-          echo "rejected=$REJECTED" >> $GITHUB_OUTPUT
-          echo "has_any=$HAS_ANY" >> $GITHUB_OUTPUT
+          count() { find "$1" -type f -name 'rfc.md' 2>/dev/null | wc -l | awk '{print $1}'; }
+          echo "drafts=$(count rfcs)"     >> "$GITHUB_OUTPUT"
+          echo "accepted=$(count specs)"  >> "$GITHUB_OUTPUT"
+          echo "rejected=$(count rejected)" >> "$GITHUB_OUTPUT"
 
       - name: Generate RFC Index (Draft / Accepted / Rejected)
         shell: bash
@@ -65,32 +62,21 @@ jobs:
             echo "# RFC Index"
             echo
             echo "## Draft RFCs"
-            if [ "${{ steps.scan.outputs.drafts }}" = "0" ]; then
-              echo "_None yet_"
-            else
-              build_table "rfcs"
-            fi
+            if [ "${{ steps.scan.outputs.drafts }}" = "0" ]; then echo "_None yet_"; else build_table "rfcs"; fi
             echo
             echo "## Accepted RFCs"
-            if [ "${{ steps.scan.outputs.accepted }}" = "0" ]; then
-              echo "_None yet_"
-            else
-              build_table "specs"
-            fi
+            if [ "${{ steps.scan.outputs.accepted }}" = "0" ]; then echo "_None yet_"; else build_table "specs"; fi
             echo
             echo "## Rejected RFCs"
-            if [ "${{ steps.scan.outputs.rejected }}" = "0" ]; then
-              echo "_None yet_"
-            else
-              build_table "rejected"
-            fi
+            if [ "${{ steps.scan.outputs.rejected }}" = "0" ]; then echo "_None yet_"; else build_table "rejected"; fi
           } > RFC_INDEX.md
 
       - name: Commit updated index
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add RFC_INDEX.md
-          git commit -m "Update RFC index" || echo "No changes to commit"
-          git pull --rebase origin ${{ github.ref_name }} || true
+          git commit -m "Update RFC index" || echo "No changes"
+          git pull --rebase origin "${GITHUB_REF_NAME:-main}" || true
           git push || true
