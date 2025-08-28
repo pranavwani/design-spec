@@ -51,27 +51,34 @@ jobs:
           has_specs=$(find specs -type f -name '*.md' 2>/dev/null | wc -l | xargs)
           has_rej=$(find rejected -type f -name '*.md' 2>/dev/null | wc -l | xargs)
 
-          echo "site_name: RFCs" > mkdocs.yml
-          echo "theme:" >> mkdocs.yml
-          echo "  name: material" >> mkdocs.yml
-          echo "plugins:" >> mkdocs.yml
-          echo "  - search" >> mkdocs.yml
-          echo "markdown_extensions:" >> mkdocs.yml
-          echo "  - toc:" >> mkdocs.yml
-          echo "      permalink: true" >> mkdocs.yml
-          echo "  - tables" >> mkdocs.yml
-          echo "  - admonition" >> mkdocs.yml
-          echo "  - codehilite" >> mkdocs.yml
-          echo "nav:" >> mkdocs.yml
-          echo "  - Home: RFC_INDEX.md" >> mkdocs.yml
+          # ── MkDocs config ────────────────────────────────────────────
+          {
+            echo "site_name: RFCs"
+            echo "docs_dir: ."
+            echo "theme:"
+            echo "  name: material"
+            echo "plugins:"
+            echo "  - search"
+            echo "markdown_extensions:"
+            echo "  - toc:"
+            echo "      permalink: true"
+            echo "  - tables"
+            echo "  - admonition"
+            echo "  - codehilite"
+            echo "nav:"
+            echo "  - Home: RFC_INDEX.md"
+          } > mkdocs.yml
+
+          # Drafts
           if [ "$has_drafts" != "0" ]; then
-            # basic globbing (no !include plugin) to avoid errors when empty
             printf "  - Drafts:\n" >> mkdocs.yml
             while IFS= read -r -d '' f; do
               rel="${f#./}"
               printf "      - %s: %s\n" "$(basename "$(dirname "$rel")")" "$rel" >> mkdocs.yml
             done < <(find rfcs -type f -name '*.md' -print0 | sort -z)
           fi
+
+          # Accepted
           if [ "$has_specs" != "0" ]; then
             printf "  - Accepted:\n" >> mkdocs.yml
             while IFS= read -r -d '' f; do
@@ -79,6 +86,8 @@ jobs:
               printf "      - %s: %s\n" "$(basename "$(dirname "$rel")")" "$rel" >> mkdocs.yml
             done < <(find specs -type f -name '*.md' -print0 | sort -z)
           fi
+
+          # Rejected
           if [ "$has_rej" != "0" ]; then
             printf "  - Rejected:\n" >> mkdocs.yml
             while IFS= read -r -d '' f; do
