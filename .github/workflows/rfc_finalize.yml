@@ -14,79 +14,113 @@ jobs:
     if: startsWith(github.event.pull_request.head.ref, 'rfc/')
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout base branch
+      - name: Checkout merge commit (or base branch)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.base.ref }}
+          # If merged, check out the exact merge commit; otherwise fall back to base branch
+          ref: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.event.pull_request.base.ref }}
 
       - name: Set up Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+      - name: Ensure RFC root folders exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p rfcs specs rejected
+          # keep dirs tracked even if empty (first time)
+          for d in rfcs specs rejected; do
+            if [ ! -e "$d/.gitkeep" ]; then
+              touch "$d/.gitkeep"
+            fi
+          done
+          git add rfcs/.gitkeep specs/.gitkeep rejected/.gitkeep || true
 
-      - name: Derive RFC paths
+      - name: Resolve RFC folder robustly
         id: rfc
         shell: bash
         run: |
-          HEAD_REF="${{ github.event.pull_request.head.ref }}"   # e.g. rfc/0002-sqlite-support-summary
-          SLUG="${HEAD_REF#rfc/}"                                 # 0002-sqlite-support-summary
-          SRC_DIR="rfcs/${SLUG}"
-          ACC_DIR="specs/${SLUG}"
-          REJ_DIR="rejected/${SLUG}"
+          set -euo pipefail
+          HEAD_REF="${{ github.event.pull_request.head.ref }}"     # rfc/0003-sqlite-support-summary
+          SLUG="${HEAD_REF#rfc/}"                                  # 0003-sqlite-support-summary
+          ID="${SLUG%%-*}"                                         # 0003
 
-          echo "slug=$SLUG" >> $GITHUB_OUTPUT
-          echo "src=$SRC_DIR" >> $GITHUB_OUTPUT
-          echo "acc=$ACC_DIR" >> $GITHUB_OUTPUT
-          echo "rej=$REJ_DIR" >> $GITHUB_OUTPUT
+          # 1) Try exact slug
+          CANDIDATE="rfcs/${SLUG}"
+          if [ -d "$CANDIDATE" ]; then
+            SRC="$CANDIDATE"
+          else
+            # 2) Try rfcs/<ID>-* (in case slug changed)
+            SRC="$(find rfcs -maxdepth 1 -mindepth 1 -type d -name "${ID}-*" | head -n1 || true)"
+          fi
 
-          echo "Base branch is: ${{ github.event.pull_request.base.ref }}"
-          git status --porcelain
+          # 3) If still not found, search by rfc.md frontmatter id
+          if [ -z "${SRC:-}" ]; then
+            while IFS= read -r -d '' f; do
+              if grep -q "^id:\\s*.*${ID}" "$f"; then
+                SRC="$(dirname "$f")"
+                break
+              fi
+            done < <(find rfcs -type f -name rfc.md -print0 2>/dev/null || true)
+          fi
 
-      - name: Guard – ensure source folder exists
-        shell: bash
-        run: |
-          if [ ! -d "${{ steps.rfc.outputs.src }}" ]; then
-            echo "❌ Source folder not found: ${{ steps.rfc.outputs.src }}"
-            echo "Repo tree:"
-            ls -la
-            echo "rfcs/"
+          if [ -z "${SRC:-}" ] || [ ! -d "$SRC" ]; then
+            echo "❌ Could not locate RFC folder for ID ${ID}"
+            echo "Tree under rfcs/:"
             ls -la rfcs || true
             exit 1
           fi
 
-      - name: Accept – move to specs and update status
+          ACC="specs/$(basename "$SRC")"
+          REJ="rejected/$(basename "$SRC")"
+
+          echo "src=$SRC"   >> $GITHUB_OUTPUT
+          echo "acc=$ACC"   >> $GITHUB_OUTPUT
+          echo "rej=$REJ"   >> $GITHUB_OUTPUT
+          echo "slug=$(basename "$SRC")" >> $GITHUB_OUTPUT
+
+      - name: Accept — move to specs and update status
         if: github.event.pull_request.merged == true
         shell: bash
         run: |
+          set -euo pipefail
           git mv "${{ steps.rfc.outputs.src }}" "${{ steps.rfc.outputs.acc }}"
           FILE="${{ steps.rfc.outputs.acc }}/rfc.md"
+          # status
           if grep -q '^status:' "$FILE"; then
             sed -i 's/^status:.*/status: Accepted/' "$FILE"
           else
-            echo "status: Accepted" | cat - "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
+            awk 'NR==1{print "status: Accepted"}1' "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
           fi
-          # Update last_modified if present
+          # last_modified
           if grep -q '^last_modified:' "$FILE"; then
             sed -i "s/^last_modified:.*/last_modified: $(date +%F)/" "$FILE"
+          else
+            sed -i "1a last_modified: $(date +%F)" "$FILE"
           fi
           git add -A
           git commit -m "Finalize RFC ${{ steps.rfc.outputs.slug }} → Accepted"
           git push origin HEAD
 
-      - name: Reject – move to rejected and update status
+      - name: Reject — move to rejected and update status
         if: github.event.pull_request.merged != true
         shell: bash
         run: |
+          set -euo pipefail
           git mv "${{ steps.rfc.outputs.src }}" "${{ steps.rfc.outputs.rej }}"
           FILE="${{ steps.rfc.outputs.rej }}/rfc.md"
           if grep -q '^status:' "$FILE"; then
             sed -i 's/^status:.*/status: Rejected/' "$FILE"
           else
-            echo "status: Rejected" | cat - "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
+            awk 'NR==1{print "status: Rejected"}1' "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
           fi
           if grep -q '^last_modified:' "$FILE"; then
             sed -i "s/^last_modified:.*/last_modified: $(date +%F)/" "$FILE"
+          else
+            sed -i "1a last_modified: $(date +%F)" "$FILE"
           fi
           git add -A
           git commit -m "Finalize RFC ${{ steps.rfc.outputs.slug }} → Rejected"
@@ -99,13 +133,10 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const pr = context.payload.pull_request;
-
-            // Try to read tracking_issue from rfc.md frontmatter
-            const slug = pr.head.ref.replace(/^rfc\//,'');
+            const slug = "${{ steps.rfc.outputs.slug }}";
             const path = `specs/${slug}/rfc.md`;
             try {
-              const { data } = await github.rest.repos.getContent({ owner, repo, path, ref: pr.base.ref });
+              const { data } = await github.rest.repos.getContent({ owner, repo, path, ref: context.payload.pull_request.base.ref });
               const text = Buffer.from(data.content, 'base64').toString('utf8');
               const m = text.match(/^tracking_issue:\s*#?(\d+)/m);
               if (m) {
