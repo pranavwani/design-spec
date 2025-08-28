@@ -3,7 +3,7 @@ id: 0001
 title: "sqlite support into the spa
 
 ### Summary"
-status: Draft
+status: Accepted
 authors: [ "pranavwani" ]
 reviewers: [ ]
 created: 2025-08-28
