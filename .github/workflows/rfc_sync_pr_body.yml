@@ -23,13 +23,13 @@ jobs:
 
             // Find RFC folder
             const files = await github.paginate(
-              github.rest.pulls.listFiles, { owner, repo, pull_number: pr.number }
+              github.rest.pulls.listFiles,
+              { owner, repo, pull_number: pr.number }
             );
             const sample = files
               .map(f => f.filename)
               .find(p => /^rfcs\/\d{4}-[^/]+\//.test(p));
             if (!sample) return;
-
             const folderRoot = sample.match(/^(rfcs\/\d{4}-[^/]+)\//)[1];
             const rfcPath = `${folderRoot}/rfc.md`;
 
@@ -44,7 +44,7 @@ jobs:
               return;
             }
 
-            // Parse a few fields from front matter
+            // Parse frontmatter
             const fm = (() => {
               const m = text.match(/^---\n([\s\S]*?)\n---/);
               if (!m) return {};
@@ -53,31 +53,69 @@ jobs:
                 const r = new RegExp(`^${key}:\\s*["']?([^\\n"']+)["']?\\s*$`, 'mi');
                 const mm = raw.match(r); return mm ? mm[1].trim() : '';
               };
+              const list = (key) => {
+                const r = new RegExp(`^${key}:\\s*\\[([^\\]]*)\\]`, 'mi');
+                const mm = raw.match(r);
+                if (!mm) return '';
+                return mm[1]
+                  .split(',')
+                  .map(s => s.trim())
+                  .filter(Boolean)
+                  .join('<br>');
+              };
               const block = (key) => {
                 const r = new RegExp(`${key}:\\s*\\|\\s*\\n([\\s\\S]*?)(\\n\\w+:|$)`, 'm');
                 const mm = raw.match(r); return mm ? mm[1].trim() : '';
               };
               return {
-                rfc_id: read('rfc_id'),
+                id: read('id'),
                 title: read('title'),
-                doc_set: read('doc_set'),
+                status: read('status'),
+                authors: list('authors'),
+                reviewers: list('reviewers'),
+                created: read('created'),
+                last_modified: read('last_modified'),
+                tracking_issue: read('tracking_issue'),
+                dependencies: list('dependencies'),
+                supersedes: list('supersedes'),
                 summary: block('summary'),
                 motivation: block('motivation')
               };
             })();
 
-            const body = [
-              `**RFC ${fm.rfc_id || ''}: ${fm.title || pr.title}**`,
-              ``,
-              `**Doc Set:** ${fm.doc_set || 'standard'}`,
-              ``,
-              `**Primary Doc:** [rfc.md](/${owner}/${repo}/blob/${pr.head.ref}/${rfcPath})`,
-              ``,
-              `### Summary`,
-              fm.summary || "_(add summary in rfc.md)_",
-              ``,
-              `### Motivation`,
-              fm.motivation || "_(add motivation in rfc.md)_"
+            // Build a metadata table
+            const table = [
+              '| Field | Value |',
+              '|-------|-------|',
+              `| **ID** | ${fm.id || ''} |`,
+              `| **Title** | ${fm.title || pr.title} |`,
+              `| **Status** | ${fm.status || 'Draft'} |`,
+              `| **Authors** | ${fm.authors || ''} |`,
+              `| **Reviewers** | ${fm.reviewers || ''} |`,
+              `| **Created** | ${fm.created || ''} |`,
+              `| **Last Modified** | ${fm.last_modified || ''} |`,
+              `| **Tracking Issue** | ${fm.tracking_issue || ''} |`,
+              `| **Dependencies** | ${fm.dependencies || ''} |`,
+              `| **Supersedes** | ${fm.supersedes || ''} |`
             ].join('\n');
 
-            await github.rest.pulls.update({ owner, repo, pull_number: pr.number, body });
+            const body = [
+              `# RFC Metadata`,
+              ``,
+              table,
+              ``,
+              `# Summary`,
+              fm.summary || "_(add summary in rfc.md)_",
+              ``,
+              `# Motivation`,
+              fm.motivation || "_(add motivation in rfc.md)_",
+              ``,
+              `# Primary Document`,
+              `[rfc.md](/${owner}/${repo}/blob/${pr.head.ref}/${rfcPath})`
+            ].join('\n');
+
+            await github.rest.pulls.update({
+              owner, repo,
+              pull_number: pr.number,
+              body
+            });
