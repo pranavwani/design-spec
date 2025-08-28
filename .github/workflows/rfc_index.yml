@@ -18,49 +18,54 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Generate RFC Index
+      - name: Ensure folders
         run: |
-          OUT="# RFC Index\n"
-          OUT="$OUT\n\n# Draft RFCs\n"
-          OUT="$OUT\n| ID | Title | Authors | Status |"
-          OUT="$OUT\n|----|-------|---------|--------|"
+          mkdir -p rfcs specs rejected
 
-          for file in $(find rfcs -name rfc.md 2>/dev/null | sort); do
-            ID=$(grep '^id:' $file | cut -d: -f2- | xargs)
-            TITLE=$(grep '^title:' $file | cut -d: -f2- | xargs)
-            STATUS=$(grep '^status:' $file | cut -d: -f2- | xargs)
-            AUTHORS=$(grep '^authors:' $file | cut -d: -f2- | sed 's/\[//;s/\]//;s/,/ /g' | xargs)
-            RELATIVE=$(echo $file | sed 's|^|./|')
-            OUT="$OUT\n| [$ID]($RELATIVE) | $TITLE | $AUTHORS | $STATUS |"
-          done
+      - name: Install yq (YAML CLI)
+        run: |
+          sudo wget -q https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64 -O /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
 
-          OUT="$OUT\n\n# Accepted RFCs\n"
-          OUT="$OUT\n| ID | Title | Authors | Status |"
-          OUT="$OUT\n|----|-------|---------|--------|"
+      - name: Generate RFC Index (Draft / Accepted / Rejected)
+        id: gen
+        shell: bash
+        run: |
+          set -euo pipefail
 
-          for file in $(find specs -name rfc.md 2>/dev/null | sort); do
-            ID=$(grep '^id:' $file | cut -d: -f2- | xargs)
-            TITLE=$(grep '^title:' $file | cut -d: -f2- | xargs)
-            STATUS=$(grep '^status:' $file | cut -d: -f2- | xargs)
-            AUTHORS=$(grep '^authors:' $file | cut -d: -f2- | sed 's/\[//;s/\]//;s/,/ /g' | xargs)
-            RELATIVE=$(echo $file | sed 's|^|./|')
-            OUT="$OUT\n| [$ID]($RELATIVE) | $TITLE | $AUTHORS | $STATUS |"
-          done
+          build_table () {
+            local root="$1"
+            echo "| ID | Title | Authors | Status |"
+            echo "|----|-------|---------|--------|"
 
-          OUT="$OUT\n\n# Rejected RFCs\n"
-          OUT="$OUT\n| ID | Title | Authors | Status |"
-          OUT="$OUT\n|----|-------|---------|--------|"
+            # find .md files named rfc.md under the root (ignore if none)
+            while IFS= read -r -d '' file; do
+              # Frontmatter fields (fall back to sensible defaults)
+              ID=$(yq '.id // ""' "$file" | tr -d '"')
+              TITLE=$(yq '.title // ""' "$file" | sed 's/^"//;s/"$//')
+              STATUS=$(yq '.status // "Draft"' "$file" | tr -d '"')
+              # Join authors array with spaces (or blank)
+              AUTHORS=$(yq -o=tsv '.authors // [] | .[]' "$file" 2>/dev/null | paste -sd' ' - || true)
 
-          for file in $(find rejected -name rfc.md 2>/dev/null | sort); do
-            ID=$(grep '^id:' $file | cut -d: -f2- | xargs)
-            TITLE=$(grep '^title:' $file | cut -d: -f2- | xargs)
-            STATUS=$(grep '^status:' $file | cut -d: -f2- | xargs)
-            AUTHORS=$(grep '^authors:' $file | cut -d: -f2- | sed 's/\[//;s/\]//;s/,/ /g' | xargs)
-            RELATIVE=$(echo $file | sed 's|^|./|')
-            OUT="$OUT\n| [$ID]($RELATIVE) | $TITLE | $AUTHORS | $STATUS |"
-          done
+              # make relative link
+              RELATIVE="./${file}"
+              echo "| [$ID]($RELATIVE) | $TITLE | $AUTHORS | $STATUS |"
+            done < <(find "$root" -type f -name rfc.md -print0 2>/dev/null | sort -z)
+          }
 
-          echo -e "$OUT" > RFC_INDEX.md
+          {
+            echo "# RFC Index"
+            echo
+            echo "## Draft RFCs"
+            build_table "rfcs"
+            echo
+            echo "## Accepted RFCs"
+            build_table "specs"
+            echo
+            echo "## Rejected RFCs"
+            build_table "rejected"
+          } > RFC_INDEX.md
 
       - name: Commit updated index
         run: |
