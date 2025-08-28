@@ -18,28 +18,60 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Generate Specs Index
-        id: gen
+      - name: Generate RFC Index
         run: |
-          echo "# Accepted RFCs" > specs/README.md
-          echo "" >> specs/README.md
-          echo "| ID | Title | Authors | Status |" >> specs/README.md
-          echo "|----|-------|---------|--------|" >> specs/README.md
+          OUT="RFC Index\n===========\n"
+          OUT="$OUT\n\n# Draft RFCs\n"
+          OUT="$OUT\n| ID | Title | Authors | Status |"
+          OUT="$OUT\n|----|-------|---------|--------|"
 
-          for file in $(find specs -name rfc.md | sort); do
+          # Drafts
+          for file in $(find rfcs -name rfc.md 2>/dev/null | sort); do
             ID=$(grep '^id:' $file | cut -d: -f2- | xargs)
             TITLE=$(grep '^title:' $file | cut -d: -f2- | xargs)
             STATUS=$(grep '^status:' $file | cut -d: -f2- | xargs)
             AUTHORS=$(grep '^authors:' $file | cut -d: -f2- | sed 's/\[//;s/\]//;s/,/ /g' | xargs)
 
             RELATIVE=$(echo $file | sed 's|^|./|')
-            echo "| [$ID]($RELATIVE) | $TITLE | $AUTHORS | $STATUS |" >> specs/README.md
+            OUT="$OUT\n| [$ID]($RELATIVE) | $TITLE | $AUTHORS | $STATUS |"
           done
 
-      - name: Commit updated README
+          # Accepted
+          OUT="$OUT\n\n# Accepted RFCs\n"
+          OUT="$OUT\n| ID | Title | Authors | Status |"
+          OUT="$OUT\n|----|-------|---------|--------|"
+
+          for file in $(find specs -name rfc.md 2>/dev/null | sort); do
+            ID=$(grep '^id:' $file | cut -d: -f2- | xargs)
+            TITLE=$(grep '^title:' $file | cut -d: -f2- | xargs)
+            STATUS=$(grep '^status:' $file | cut -d: -f2- | xargs)
+            AUTHORS=$(grep '^authors:' $file | cut -d: -f2- | sed 's/\[//;s/\]//;s/,/ /g' | xargs)
+
+            RELATIVE=$(echo $file | sed 's|^|./|')
+            OUT="$OUT\n| [$ID]($RELATIVE) | $TITLE | $AUTHORS | $STATUS |"
+          done
+
+          # Rejected
+          OUT="$OUT\n\n# Rejected RFCs\n"
+          OUT="$OUT\n| ID | Title | Authors | Status |"
+          OUT="$OUT\n|----|-------|---------|--------|"
+
+          for file in $(find rejected -name rfc.md 2>/dev/null | sort); do
+            ID=$(grep '^id:' $file | cut -d: -f2- | xargs)
+            TITLE=$(grep '^title:' $file | cut -d: -f2- | xargs)
+            STATUS=$(grep '^status:' $file | cut -d: -f2- | xargs)
+            AUTHORS=$(grep '^authors:' $file | cut -d: -f2- | sed 's/\[//;s/\]//;s/,/ /g' | xargs)
+
+            RELATIVE=$(echo $file | sed 's|^|./|')
+            OUT="$OUT\n| [$ID]($RELATIVE) | $TITLE | $AUTHORS | $STATUS |"
+          done
+
+          echo -e "$OUT" > RFC_INDEX.md
+
+      - name: Commit updated index
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add specs/README.md
-          git commit -m "Update specs index" || echo "No changes to commit"
+          git add RFC_INDEX.md
+          git commit -m "Update RFC index" || echo "No changes to commit"
           git push
