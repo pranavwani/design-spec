@@ -18,49 +18,48 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # If merged, check out the exact merge commit; otherwise fall back to base branch
           ref: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.event.pull_request.base.ref }}
 
-      - name: Set up Git
+      - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
       - name: Ensure RFC root folders exist
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p rfcs specs rejected
-          # keep dirs tracked even if empty (first time)
           for d in rfcs specs rejected; do
-            if [ ! -e "$d/.gitkeep" ]; then
-              touch "$d/.gitkeep"
-            fi
+            touch "$d/.gitkeep"
           done
-          git add rfcs/.gitkeep specs/.gitkeep rejected/.gitkeep || true
 
       - name: Resolve RFC folder robustly
         id: rfc
         shell: bash
         run: |
           set -euo pipefail
-          HEAD_REF="${{ github.event.pull_request.head.ref }}"     # rfc/0003-sqlite-support-summary
-          SLUG="${HEAD_REF#rfc/}"                                  # 0003-sqlite-support-summary
-          ID="${SLUG%%-*}"                                         # 0003
+          HEAD_REF="${{ github.event.pull_request.head.ref }}"   # e.g. rfc/0003-sqlite-support-summary
+          SLUG="${HEAD_REF#rfc/}"                                # 0003-sqlite-support-summary
+          ID="${SLUG%%-*}"                                       # 0003
 
-          # 1) Try exact slug
-          CANDIDATE="rfcs/${SLUG}"
-          if [ -d "$CANDIDATE" ]; then
-            SRC="$CANDIDATE"
-          else
-            # 2) Try rfcs/<ID>-* (in case slug changed)
+          # Try exact slug
+          SRC="rfcs/${SLUG}"
+          if [ ! -d "$SRC" ]; then
+            # Try by numeric id (slug may have changed)
             SRC="$(find rfcs -maxdepth 1 -mindepth 1 -type d -name "${ID}-*" | head -n1 || true)"
           fi
 
-          # 3) If still not found, search by rfc.md frontmatter id
-          if [ -z "${SRC:-}" ]; then
+          # Fallback: search rfc.md by frontmatter id
+          if [ -z "${SRC:-}" ] || [ ! -d "$SRC" ]; then
+            if command -v yq >/dev/null 2>&1; then
+              :
+            else
+              sudo wget -q https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64 -O /usr/local/bin/yq
+              sudo chmod +x /usr/local/bin/yq
+            fi
             while IFS= read -r -d '' f; do
-              if grep -q "^id:\\s*.*${ID}" "$f"; then
+              if [ "$(yq eval --front-matter=extract '.id // ""' "$f")" = "$ID" ]; then
                 SRC="$(dirname "$f")"
                 break
               fi
@@ -69,7 +68,7 @@ jobs:
 
           if [ -z "${SRC:-}" ] || [ ! -d "$SRC" ]; then
             echo "❌ Could not locate RFC folder for ID ${ID}"
-            echo "Tree under rfcs/:"
+            echo "rfcs/ tree:"
             ls -la rfcs || true
             exit 1
           fi
@@ -77,10 +76,10 @@ jobs:
           ACC="specs/$(basename "$SRC")"
           REJ="rejected/$(basename "$SRC")"
 
-          echo "src=$SRC"   >> $GITHUB_OUTPUT
-          echo "acc=$ACC"   >> $GITHUB_OUTPUT
-          echo "rej=$REJ"   >> $GITHUB_OUTPUT
           echo "slug=$(basename "$SRC")" >> $GITHUB_OUTPUT
+          echo "src=$SRC" >> $GITHUB_OUTPUT
+          echo "acc=$ACC" >> $GITHUB_OUTPUT
+          echo "rej=$REJ" >> $GITHUB_OUTPUT
 
       - name: Accept — move to specs and update status
         if: github.event.pull_request.merged == true
@@ -89,13 +88,13 @@ jobs:
           set -euo pipefail
           git mv "${{ steps.rfc.outputs.src }}" "${{ steps.rfc.outputs.acc }}"
           FILE="${{ steps.rfc.outputs.acc }}/rfc.md"
-          # update status
+          # status
           if grep -q '^status:' "$FILE"; then
             sed -i 's/^status:.*/status: Accepted/' "$FILE"
           else
             awk 'NR==1{print "status: Accepted"}1' "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
           fi
-          # update last_modified
+          # last_modified
           if grep -q '^last_modified:' "$FILE"; then
             sed -i "s/^last_modified:.*/last_modified: $(date +%F)/" "$FILE"
           else
@@ -103,6 +102,8 @@ jobs:
           fi
           git add -A
           git commit -m "Finalize RFC ${{ steps.rfc.outputs.slug }} → Accepted" || true
+          # Rebase to avoid 'cannot lock ref' when main moved
+          git pull --rebase origin ${{ github.event.pull_request.base.ref }}
           git push origin HEAD:${{ github.event.pull_request.base.ref }}
 
       - name: Reject — move to rejected and update status
@@ -124,6 +125,7 @@ jobs:
           fi
           git add -A
           git commit -m "Finalize RFC ${{ steps.rfc.outputs.slug }} → Rejected" || true
+          git pull --rebase origin ${{ github.event.pull_request.base.ref }}
           git push origin HEAD:${{ github.event.pull_request.base.ref }}
 
       - name: Close tracking issue if merged
@@ -134,9 +136,10 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const slug = "${{ steps.rfc.outputs.slug }}";
+            const baseRef = context.payload.pull_request.base.ref;
             const path = `specs/${slug}/rfc.md`;
             try {
-              const { data } = await github.rest.repos.getContent({ owner, repo, path, ref: context.payload.pull_request.base.ref });
+              const { data } = await github.rest.repos.getContent({ owner, repo, path, ref: baseRef });
               const text = Buffer.from(data.content, 'base64').toString('utf8');
               const m = text.match(/^tracking_issue:\s*#?(\d+)/m);
               if (m) {

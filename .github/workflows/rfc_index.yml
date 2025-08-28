@@ -14,41 +14,50 @@ permissions:
 jobs:
   index:
     runs-on: ubuntu-latest
+    outputs:
+      has_any: ${{ steps.scan.outputs.has_any }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
+      # Ensure roots always exist so downstream steps never explode
       - name: Ensure folders
         run: |
           mkdir -p rfcs specs rejected
 
-      - name: Install yq (YAML CLI)
+      - name: Install yq
         run: |
           sudo wget -q https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64 -O /usr/local/bin/yq
           sudo chmod +x /usr/local/bin/yq
-          yq --version
+
+      - name: Scan content counts
+        id: scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          DRAFTS=$(find rfcs -type f -name rfc.md 2>/dev/null | wc -l | xargs)
+          ACCEPTED=$(find specs -type f -name rfc.md 2>/dev/null | wc -l | xargs)
+          REJECTED=$(find rejected -type f -name rfc.md 2>/dev/null | wc -l | xargs)
+          HAS_ANY=false
+          if [ "$DRAFTS" != "0" ] || [ "$ACCEPTED" != "0" ] || [ "$REJECTED" != "0" ]; then HAS_ANY=true; fi
+          echo "drafts=$DRAFTS"   >> $GITHUB_OUTPUT
+          echo "accepted=$ACCEPTED" >> $GITHUB_OUTPUT
+          echo "rejected=$REJECTED" >> $GITHUB_OUTPUT
+          echo "has_any=$HAS_ANY" >> $GITHUB_OUTPUT
 
       - name: Generate RFC Index (Draft / Accepted / Rejected)
         shell: bash
         run: |
           set -euo pipefail
-
           build_table () {
             local root="$1"
             echo "| ID | Title | Authors | Status |"
             echo "|----|-------|---------|--------|"
-
-            # find rfc.md under the root; ignore if none
             while IFS= read -r -d '' file; do
-              # Read ONLY the YAML front-matter
               ID=$(yq eval --front-matter=extract '.id // ""' "$file" | tr -d '"')
               TITLE=$(yq eval --front-matter=extract '.title // ""' "$file" | sed 's/^"//;s/"$//')
               STATUS=$(yq eval --front-matter=extract '.status // "Draft"' "$file" | tr -d '"')
-              # Join authors array with spaces (fallback empty)
               AUTHORS=$(yq eval --front-matter=extract -o=tsv '.authors // [] | .[]' "$file" 2>/dev/null | paste -sd' ' - || true)
-
-              RELATIVE="./${file}"
-              echo "| [$ID]($RELATIVE) | $TITLE | $AUTHORS | $STATUS |"
+              echo "| [$ID](./${file}) | $TITLE | $AUTHORS | $STATUS |"
             done < <(find "$root" -type f -name rfc.md -print0 2>/dev/null | sort -z)
           }
 
@@ -56,13 +65,25 @@ jobs:
             echo "# RFC Index"
             echo
             echo "## Draft RFCs"
-            build_table "rfcs"
+            if [ "${{ steps.scan.outputs.drafts }}" = "0" ]; then
+              echo "_None yet_"
+            else
+              build_table "rfcs"
+            fi
             echo
             echo "## Accepted RFCs"
-            build_table "specs"
+            if [ "${{ steps.scan.outputs.accepted }}" = "0" ]; then
+              echo "_None yet_"
+            else
+              build_table "specs"
+            fi
             echo
             echo "## Rejected RFCs"
-            build_table "rejected"
+            if [ "${{ steps.scan.outputs.rejected }}" = "0" ]; then
+              echo "_None yet_"
+            else
+              build_table "rejected"
+            fi
           } > RFC_INDEX.md
 
       - name: Commit updated index
@@ -71,4 +92,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add RFC_INDEX.md
           git commit -m "Update RFC index" || echo "No changes to commit"
-          git push
+          git pull --rebase origin ${{ github.ref_name }} || true
+          git push || true
