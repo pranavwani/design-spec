@@ -11,9 +11,57 @@ permissions:
 
 jobs:
   scaffold:
-    if: contains(github.event.issue.labels.*.name, 'rfc')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
     steps:
+      - name: Ensure "rfc" label exists
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const name = 'rfc';
+            const color = '0E8A16'; // nice green; change if you want
+            const description = 'RFC proposals';
+
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name });
+            } catch (e) {
+              if (e.status === 404) {
+                await github.rest.issues.createLabel({ owner, repo, name, color, description });
+              } else {
+                throw e;
+              }
+            }
+
+      - name: Add "rfc" label to this issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.payload.issue.number;
+            await github.rest.issues.addLabels({ owner, repo, issue_number, labels: ['rfc'] });
+
+      # (optional) guard: only proceed if this *looks* like the RFC form
+      - name: Guard – ensure it's an RFC form issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.issue.title || '';
+            if (!/^\[RFC\]/i.test(title)) {
+              core.setOutput('skip', 'true');
+              core.notice('Not an RFC issue. Skipping.');
+            }
+
+      - name: Stop if not RFC
+        if: steps.guard.outputs.skip == 'true'
+        run: echo "Skipping non-RFC issue" && exit 0
+        
       - name: Bootstrap RFC (create branch, files, draft PR)
         uses: actions/github-script@v7
         with:
