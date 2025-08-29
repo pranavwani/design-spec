@@ -86,6 +86,7 @@ jobs:
 
           cat > mkdocs.yml <<'YAML'
           site_name: RFCs
+          site_url: https://pranavwani.github.io/design-spec/
           docs_dir: docs
           theme:
             name: material
