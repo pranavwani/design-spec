@@ -2,7 +2,7 @@ name: Publish RFCs to GitHub Pages
 
 on:
   workflow_run:
-    workflows: ["RFC Index Generator"]   # ← chain only from index
+    workflows: ["RFC Index Generator"]   # runs after index completes
     types: [completed]
   workflow_dispatch: {}
 
@@ -11,25 +11,27 @@ permissions:
   pages: write
   id-token: write
 
+# ensure only one publish runs at a time
 concurrency:
   group: rfc-pages
   cancel-in-progress: true
-  
+
 jobs:
   build:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
       has_any: ${{ steps.check.outputs.has_any }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Check if there is anything to publish
         id: check
         shell: bash
         run: |
           set -euo pipefail
-          # Count safely; never fail if folders are missing
           count() { test -d "$1" || mkdir -p "$1"; find "$1" -type f -name '*.md' 2>/dev/null | wc -l | awk '{print $1}'; }
           DRAFTS=$(count rfcs)
           ACCEPTED=$(count specs)
@@ -52,6 +54,7 @@ jobs:
         if: steps.check.outputs.has_any == 'true'
         shell: bash
         run: |
+          set -euo pipefail
           rm -rf docs
           mkdir -p docs
           [ -f RFC_INDEX.md ] && cp RFC_INDEX.md docs/RFC_INDEX.md
@@ -64,6 +67,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           collect_md() {
             local root="$1" ; shift
             local -n out_arr=$1
@@ -74,6 +78,7 @@ jobs:
               done < <(find "$root" -type f -name '*.md' -print0 2>/dev/null || true)
             fi
           }
+
           declare -a DRAFTS SPECED REJECTED
           collect_md "docs/rfcs" DRAFTS
           collect_md "docs/specs" SPECED
