@@ -48,12 +48,10 @@ jobs:
         if: steps.check.outputs.has_any == 'true'
         run: pip install mkdocs mkdocs-material
 
-      # Stage markdown into ./docs so mkdocs isn't confused by root-as-docs
       - name: Stage docs into ./docs
         if: steps.check.outputs.has_any == 'true'
         shell: bash
         run: |
-          set -euo pipefail
           rm -rf docs
           mkdir -p docs
           [ -f RFC_INDEX.md ] && cp RFC_INDEX.md docs/RFC_INDEX.md
@@ -61,16 +59,26 @@ jobs:
           [ -d specs ] && rsync -a specs/ docs/specs/ || true
           [ -d rejected ] && rsync -a rejected/ docs/rejected/ || true
 
-      # Generate mkdocs.yml with correct docs_dir and auto-nav relative to ./docs
-      - name: Generate mkdocs.yml (auto-nav under ./docs)
+      - name: Generate mkdocs.yml (safe, array-based)
         if: steps.check.outputs.has_any == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          list_md () { find "$1" -type f -name '*.md' -print0 2>/dev/null | sort -z; }
-          has_any_dir () { test -d "$1" && [ "$(find "$1" -type f -name '*.md' 2>/dev/null | wc -l)" -gt 0 ]; }
+          collect_md() {
+            local root="$1" ; shift
+            local -n out_arr=$1
+            out_arr=()
+            if [ -d "$root" ]; then
+              while IFS= read -r -d '' f; do
+                out_arr+=( "${f#docs/}" )
+              done < <(find "$root" -type f -name '*.md' -print0 2>/dev/null || true)
+            fi
+          }
+          declare -a DRAFTS SPECED REJECTED
+          collect_md "docs/rfcs" DRAFTS
+          collect_md "docs/specs" SPECED
+          collect_md "docs/rejected" REJECTED
 
-          # Base config
           cat > mkdocs.yml <<'YAML'
           site_name: RFCs
           docs_dir: docs
@@ -88,23 +96,29 @@ jobs:
             - Home: RFC_INDEX.md
           YAML
 
-          # Helper to append a section
-          append_section () {
-            local title="$1"; shift
-            local root="$1"; shift
-            echo "  - ${title}:" >> mkdocs.yml
-            # Pretty names from parent folder, link file with path relative to docs/
-            while IFS= read -r -d '' f; do
-              rel="${f#docs/}"                               # e.g. specs/0001-foo/rfc.md
-              name="$(basename "$(dirname "$rel")")"        # e.g. 0001-foo
+          if [ "${#DRAFTS[@]}" -gt 0 ]; then
+            echo "  - Drafts:" >> mkdocs.yml
+            for rel in "${DRAFTS[@]}"; do
+              name="$(basename "$(dirname "$rel")")"
               printf "      - %s: %s\n" "$name" "$rel" >> mkdocs.yml
-            done < <(list_md "$root")
-          }
+            done
+          fi
 
-          # Add sections only if they have content
-          has_any_dir docs/rfcs     && append_section "Drafts"   "docs/rfcs"
-          has_any_dir docs/specs    && append_section "Accepted" "docs/specs"
-          has_any_dir docs/rejected && append_section "Rejected" "docs/rejected"
+          if [ "${#SPECED[@]}" -gt 0 ]; then
+            echo "  - Accepted:" >> mkdocs.yml
+            for rel in "${SPECED[@]}"; do
+              name="$(basename "$(dirname "$rel")")"
+              printf "      - %s: %s\n" "$name" "$rel" >> mkdocs.yml
+            done
+          fi
+
+          if [ "${#REJECTED[@]}" -gt 0 ]; then
+            echo "  - Rejected:" >> mkdocs.yml
+            for rel in "${REJECTED[@]}"; do
+              name="$(basename "$(dirname "$rel")")"
+              printf "      - %s: %s\n" "$name" "$rel" >> mkdocs.yml
+            done
+          fi
 
       - name: Build site
         if: steps.check.outputs.has_any == 'true'
