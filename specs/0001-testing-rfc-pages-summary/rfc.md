@@ -3,7 +3,7 @@ id: 0001
 title: "testing rfc pages
 
 ### Summary"
-status: Draft
+status: Accepted
 authors: [ "pranavwani" ]
 reviewers: [ ]
 created: 2025-08-29
