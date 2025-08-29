@@ -11,6 +11,10 @@ permissions:
   pages: write
   id-token: write
 
+concurrency:
+  group: rfc-pages
+  cancel-in-progress: true
+  
 jobs:
   build:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
@@ -44,52 +48,63 @@ jobs:
         if: steps.check.outputs.has_any == 'true'
         run: pip install mkdocs mkdocs-material
 
-      - name: Generate mkdocs.yml (only include non-empty sections)
+      # Stage markdown into ./docs so mkdocs isn't confused by root-as-docs
+      - name: Stage docs into ./docs
+        if: steps.check.outputs.has_any == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf docs
+          mkdir -p docs
+          [ -f RFC_INDEX.md ] && cp RFC_INDEX.md docs/RFC_INDEX.md
+          [ -d rfcs ] && rsync -a rfcs/ docs/rfcs/ || true
+          [ -d specs ] && rsync -a specs/ docs/specs/ || true
+          [ -d rejected ] && rsync -a rejected/ docs/rejected/ || true
+
+      # Generate mkdocs.yml with correct docs_dir and auto-nav relative to ./docs
+      - name: Generate mkdocs.yml (auto-nav under ./docs)
         if: steps.check.outputs.has_any == 'true'
         shell: bash
         run: |
           set -euo pipefail
           list_md () { find "$1" -type f -name '*.md' -print0 2>/dev/null | sort -z; }
-          has_any_dir () { test "$(find "$1" -type f -name '*.md' 2>/dev/null | wc -l | awk '{print $1}')" != "0"; }
+          has_any_dir () { test -d "$1" && [ "$(find "$1" -type f -name '*.md' 2>/dev/null | wc -l)" -gt 0 ]; }
 
-          echo "site_name: RFCs" > mkdocs.yml
-          echo "docs_dir: ." >> mkdocs.yml
-          echo "theme:" >> mkdocs.yml
-          echo "  name: material" >> mkdocs.yml
-          echo "plugins:" >> mkdocs.yml
-          echo "  - search" >> mkdocs.yml
-          echo "markdown_extensions:" >> mkdocs.yml
-          echo "  - toc:" >> mkdocs.yml
-          echo "      permalink: true" >> mkdocs.yml
-          echo "  - tables" >> mkdocs.yml
-          echo "  - admonition" >> mkdocs.yml
-          echo "  - codehilite" >> mkdocs.yml
-          echo "nav:" >> mkdocs.yml
-          echo "  - Home: RFC_INDEX.md" >> mkdocs.yml
+          # Base config
+          cat > mkdocs.yml <<'YAML'
+          site_name: RFCs
+          docs_dir: docs
+          theme:
+            name: material
+          plugins:
+            - search
+          markdown_extensions:
+            - toc:
+                permalink: true
+            - tables
+            - admonition
+            - codehilite
+          nav:
+            - Home: RFC_INDEX.md
+          YAML
 
-          if has_any_dir rfcs; then
-            printf "  - Drafts:\n" >> mkdocs.yml
+          # Helper to append a section
+          append_section () {
+            local title="$1"; shift
+            local root="$1"; shift
+            echo "  - ${title}:" >> mkdocs.yml
+            # Pretty names from parent folder, link file with path relative to docs/
             while IFS= read -r -d '' f; do
-              rel="${f#./}"
-              printf "      - %s: %s\n" "$(basename "$(dirname "$rel")")" "$rel" >> mkdocs.yml
-            done < <(list_md rfcs)
-          fi
+              rel="${f#docs/}"                               # e.g. specs/0001-foo/rfc.md
+              name="$(basename "$(dirname "$rel")")"        # e.g. 0001-foo
+              printf "      - %s: %s\n" "$name" "$rel" >> mkdocs.yml
+            done < <(list_md "$root")
+          }
 
-          if has_any_dir specs; then
-            printf "  - Accepted:\n" >> mkdocs.yml
-            while IFS= read -r -d '' f; do
-              rel="${f#./}"
-              printf "      - %s: %s\n" "$(basename "$(dirname "$rel")")" "$rel" >> mkdocs.yml
-            done < <(list_md specs)
-          fi
-
-          if has_any_dir rejected; then
-            printf "  - Rejected:\n" >> mkdocs.yml
-            while IFS= read -r -d '' f; do
-              rel="${f#./}"
-              printf "      - %s: %s\n" "$(basename "$(dirname "$rel")")" "$rel" >> mkdocs.yml
-            done < <(list_md rejected)
-          fi
+          # Add sections only if they have content
+          has_any_dir docs/rfcs     && append_section "Drafts"   "docs/rfcs"
+          has_any_dir docs/specs    && append_section "Accepted" "docs/specs"
+          has_any_dir docs/rejected && append_section "Rejected" "docs/rejected"
 
       - name: Build site
         if: steps.check.outputs.has_any == 'true'
