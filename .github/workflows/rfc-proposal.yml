@@ -1,0 +1,143 @@
+name: RFC Proposal Handler
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  handle-rfc:
+    if: contains(github.event.issue.title, 'RFC Proposal:')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y jq yq
+
+      - name: Extract squads from issue body
+        id: squads
+        run: |
+          BODY="${{ github.event.issue.body }}"
+          LABELS=""
+
+          if echo "$BODY" | grep -q "\- \[x\] Foundry"; then
+            LABELS="$LABELS squad/foundry"
+          fi
+          if echo "$BODY" | grep -q "\- \[x\] SDK"; then
+            LABELS="$LABELS squad/sdk"
+          fi
+          if echo "$BODY" | grep -q "\- \[x\] Iris"; then
+            LABELS="$LABELS squad/iris"
+          fi
+          if echo "$BODY" | grep -q "\- \[x\] Flare"; then
+            LABELS="$LABELS squad/flare"
+          fi
+
+          echo "labels=$LABELS" >> $GITHUB_OUTPUT
+
+      - name: Apply squad labels
+        if: steps.squads.outputs.labels != ''
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: ${{ steps.squads.outputs.labels }}
+
+      - name: Generate RFC ID
+        id: id
+        run: |
+          LAST=$(ls rfcs/RFC-* -1d 2>/dev/null | wc -l)
+          NEXT=$((LAST+1))
+          ID="RFC-$(printf "%03d" $NEXT)"
+          echo "id=$ID" >> $GITHUB_OUTPUT
+
+      - name: Create RFC skeleton
+        run: |
+          TITLE=$(echo "${{ github.event.issue.title }}" | sed 's/RFC Proposal: //')
+          AUTHOR="${{ github.event.issue.user.login }}"
+          DATE=$(date +%F)
+          LABELS="${{ steps.squads.outputs.labels }}"
+          ID=${{ steps.id.outputs.id }}
+
+          DIR="rfcs/$ID-${TITLE// /-}"
+          mkdir -p "$DIR/diagrams" "$DIR/design" "$DIR/notes"
+
+cat > "$DIR/$ID-${TITLE// /-}.md" <<EOF
+# $ID: $TITLE
+
+## 📌 Metadata
+- **RFC ID**: $ID
+- **Title**: $TITLE
+- **Author(s)**: $AUTHOR
+- **Created Date**: $DATE
+- **Status**: Draft
+- **Version**: v1.0
+- **Squads**: ${LABELS:-TBD}
+
+---
+## 1. Motivation
+(TODO)
+EOF
+
+      - name: Push branch
+        run: |
+          ID=${{ steps.id.outputs.id }}
+          TITLE=$(echo "${{ github.event.issue.title }}" | sed 's/RFC Proposal: //')
+          BRANCH="rfc/${ID}-${TITLE// /-}"
+          git checkout -b "$BRANCH"
+          git add rfcs/
+          git commit -m "chore: add skeleton for $ID"
+          git push origin "$BRANCH"
+
+      - name: Collect reviewers from squads
+        id: reviewers
+        run: |
+          REVIEWERS=""
+          CHECKLIST=""
+          for label in ${{ steps.squads.outputs.labels }}; do
+            squad=$(echo $label | cut -d'/' -f2)
+            r=$(yq ".${squad}.reviewers[]" .github/squad-reviewers.yml | xargs || true)
+            REVIEWERS="$REVIEWERS $r"
+            CHECKLIST="$CHECKLIST\n- [ ] ${squad^} review"
+          done
+          echo "reviewers=$REVIEWERS" >> $GITHUB_OUTPUT
+          echo "checklist=$CHECKLIST" >> $GITHUB_OUTPUT
+
+      - name: Create draft PR
+        id: cpr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: "${{ steps.id.outputs.id }}: $(echo "${{ github.event.issue.title }}" | sed 's/RFC Proposal: //')"
+          branch: "rfc/${{ steps.id.outputs.id }}-$(echo "${{ github.event.issue.title }}" | sed 's/RFC Proposal: //')"
+          draft: true
+          labels: |
+            rfc
+            proposal
+            ${{ steps.squads.outputs.labels }}
+          reviewers: ${{ steps.reviewers.outputs.reviewers }}
+          body: |
+            Auto-generated RFC skeleton from [issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }})
+
+            **Author**: @${{ github.event.issue.user.login }}  
+            **Squads**: ${{ steps.squads.outputs.labels }}  
+            **Status**: Draft  
+
+            ---
+            ## ✅ Review Checklist
+            ${{ steps.reviewers.outputs.checklist }}
+
+      - name: Comment on original issue with PR link
+        if: steps.cpr.outputs.pull-request-url != ''
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue_number = context.issue.number;
+            const pr_url = "${{ steps.cpr.outputs.pull-request-url }}";
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              body: `📌 RFC skeleton has been generated as a [Draft PR](${pr_url}).`
+            });
