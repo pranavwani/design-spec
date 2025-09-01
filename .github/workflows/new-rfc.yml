@@ -18,16 +18,16 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install yq
-        run: sudo apt-get update && sudo apt-get install -y yq jq
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y jq yq
 
       - name: Extract issue fields
         id: fields
         run: |
-          TITLE=$(echo "${{ github.event.client_payload.issue.title }}" | sed 's/RFC Proposal: //')
-          AUTHOR=$(echo '${{ github.event.client_payload.issue.user.login }}')
+          TITLE=$(echo '${{ fromJson(inputs.issue).title }}' | sed 's/RFC Proposal: //')
+          AUTHOR=$(echo '${{ fromJson(inputs.issue).user.login }}')
           DATE=$(date +%F)
-          LABELS="${{ github.event.client_payload.labels }}"
+          LABELS="${{ inputs.labels }}"
 
           echo "title=$TITLE" >> $GITHUB_OUTPUT
           echo "author=$AUTHOR" >> $GITHUB_OUTPUT
@@ -53,7 +53,7 @@ jobs:
           DIR="rfcs/$ID-${TITLE// /-}"
           mkdir -p "$DIR/diagrams" "$DIR/design" "$DIR/notes"
 
-cat > "$DIR/$ID-${TITLE// /-}.md" <<EOF
+          cat > "$DIR/$ID-${TITLE// /-}.md" <<EOF
 # $ID: $TITLE
 
 ## 📌 Metadata
@@ -68,15 +68,13 @@ cat > "$DIR/$ID-${TITLE// /-}.md" <<EOF
 ---
 ## 1. Motivation
 (TODO)
-...
 EOF
 
           echo "# High-Level Design (HLD)" > "$DIR/design/HLD.md"
           echo "# Low-Level Design (LLD)" > "$DIR/design/LLD.md"
           echo "# Deployment / Rollout Strategy" > "$DIR/design/Deployment.md"
-          echo "# Diagrams for $ID" > "$DIR/diagrams/README.md"
-          echo "# Meeting Notes for $ID" > "$DIR/notes/meeting-notes.md"
-          echo "# Decisions Log for $ID" > "$DIR/notes/decisions-log.md"
+          echo "# Diagrams" > "$DIR/diagrams/README.md"
+          echo "# Notes" > "$DIR/notes/README.md"
 
       - name: Push branch
         run: |
@@ -114,7 +112,7 @@ EOF
             ${{ steps.fields.outputs.labels }}
           reviewers: ${{ steps.reviewers.outputs.reviewers }}
           body: |
-            Auto-generated RFC skeleton from [issue #${{ github.event.client_payload.issue.number }}](${{ github.event.client_payload.issue.html_url }})
+            Auto-generated RFC skeleton from [issue #${{ fromJson(inputs.issue).number }}](${{ fromJson(inputs.issue).html_url }})
 
             **Author**: @${{ steps.fields.outputs.author }}  
             **Squads**: ${{ steps.fields.outputs.labels }}  
@@ -123,17 +121,3 @@ EOF
             ---
             ## ✅ Review Checklist
             ${{ steps.reviewers.outputs.checklist }}
-            
-      - name: Comment on original issue with PR link
-        if: success()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ISSUE_NUM=${{ github.event.client_payload.issue.number }}
-          PR_URL=$(gh pr list --head "rfc/${{ steps.id.outputs.id }}-${{ steps.fields.outputs.title// /- }}" --json url -q '.[0].url')
-
-          if [ -n "$PR_URL" ]; then
-            gh issue comment $ISSUE_NUM --body "📌 RFC skeleton has been generated: [$PR_URL]($PR_URL)"
-          else
-            echo "⚠️ Could not find PR URL"
-          fi

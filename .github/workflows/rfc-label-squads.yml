@@ -8,6 +8,8 @@ jobs:
   label-squads:
     if: contains(github.event.issue.title, 'RFC Proposal:')
     runs-on: ubuntu-latest
+    outputs:
+      labels: ${{ steps.squads.outputs.labels }}
 
     steps:
       - name: Extract squads from issue body
