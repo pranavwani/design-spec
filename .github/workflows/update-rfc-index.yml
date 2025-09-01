@@ -1,0 +1,101 @@
+name: Update RFC Indexes & Badges
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "rfcs/**"
+      - "archive/**"
+      - "README.md"
+
+  workflow_run:
+    workflows: ["RFC PR Checks"]
+    types:
+      - completed
+
+jobs:
+  update-indexes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Count and Categorize RFCs
+        id: count
+        run: |
+          ACTIVE=0
+          PROGRESS=0
+          ARCHIVED=0
+          TOTAL=0
+
+          mkdir -p archive
+
+          for f in rfcs/RFC-*/RFC-*.md archive/RFC-*/RFC-*.md; do
+            [ -f "$f" ] || continue
+            TOTAL=$((TOTAL+1))
+            STATUS=$(grep -m1 "Status" "$f" | cut -d':' -f2- | xargs)
+
+            case "$STATUS" in
+              Draft|In\ Review) PROGRESS=$((PROGRESS+1)) ;;
+              Superseded|Deprecated) ARCHIVED=$((ARCHIVED+1)) ;;
+              *) ACTIVE=$((ACTIVE+1)) ;;
+            esac
+          done
+
+          echo "active=$ACTIVE" >> $GITHUB_OUTPUT
+          echo "progress=$PROGRESS" >> $GITHUB_OUTPUT
+          echo "archived=$ARCHIVED" >> $GITHUB_OUTPUT
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+
+      - name: Generate Indexes
+        run: |
+          echo "### 📑 Active RFCs" > RFC_INDEX.md
+          echo "" >> RFC_INDEX.md
+          echo "| RFC ID | Title | Status |" >> RFC_INDEX.md
+          echo "|--------|-------|--------|" >> RFC_INDEX.md
+
+          echo "### 📑 In Progress RFCs" > IN_PROGRESS_INDEX.md
+          echo "" >> IN_PROGRESS_INDEX.md
+          echo "| RFC ID | Title | Status |" >> IN_PROGRESS_INDEX.md
+          echo "|--------|-------|--------|" >> IN_PROGRESS_INDEX.md
+
+          echo "### 📑 Archived RFCs" > archive/RFC_ARCHIVE_INDEX.md
+          echo "" >> archive/RFC_ARCHIVE_INDEX.md
+          echo "| RFC ID | Title | Status |" >> archive/RFC_ARCHIVE_INDEX.md
+          echo "|--------|-------|--------|" >> archive/RFC_ARCHIVE_INDEX.md
+
+          for f in rfcs/RFC-*/RFC-*.md archive/RFC-*/RFC-*.md; do
+            [ -f "$f" ] || continue
+            ID=$(basename "$f" .md)
+            TITLE=$(grep -m1 "^# " "$f" | sed 's/# //')
+            STATUS=$(grep -m1 "Status" "$f" | cut -d':' -f2- | xargs)
+            row="| [$ID]($f) | $TITLE | ${STATUS:-Draft} |"
+
+            case "$STATUS" in
+              Draft|In\ Review) echo "$row" >> IN_PROGRESS_INDEX.md ;;
+              Superseded|Deprecated) echo "$row" >> archive/RFC_ARCHIVE_INDEX.md ;;
+              *) echo "$row" >> RFC_INDEX.md ;;
+            esac
+          done
+
+      - name: Update README Badges
+        run: |
+          TOTAL=${{ steps.count.outputs.total }}
+          ACTIVE=${{ steps.count.outputs.active }}
+          PROGRESS=${{ steps.count.outputs.progress }}
+          ARCHIVED=${{ steps.count.outputs.archived }}
+
+          sed -i "s|badge/RFCs-[0-9]\+-blue|badge/RFCs-${TOTAL}-blue|" README.md
+          sed -i "s|badge/Active-[0-9]\+-green|badge/Active-${ACTIVE}-green|" README.md
+          sed -i "s|badge/In%20Progress-[0-9]\+-yellow|badge/In%20Progress-${PROGRESS}-yellow|" README.md
+          sed -i "s|badge/Archived-[0-9]\+-lightgrey|badge/Archived-${ARCHIVED}-lightgrey|" README.md
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add RFC_INDEX.md IN_PROGRESS_INDEX.md archive/RFC_ARCHIVE_INDEX.md README.md
+          git commit -m "chore: update RFC indexes & badges" || echo "No changes"
+          git push

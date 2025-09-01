@@ -1,0 +1,160 @@
+name: New RFC Auto Setup
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  create-rfc:
+    if: contains(github.event.issue.title, 'RFC Proposal:')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Extract issue fields
+        id: fields
+        run: |
+          TITLE=$(echo "${{ github.event.issue.title }}" | sed 's/RFC Proposal: //')
+          AUTHOR="${{ github.event.issue.user.login }}"
+          DATE=$(date +%F)
+
+          echo "title=$TITLE" >> $GITHUB_OUTPUT
+          echo "author=$AUTHOR" >> $GITHUB_OUTPUT
+          echo "date=$DATE" >> $GITHUB_OUTPUT
+
+      - name: Generate RFC ID
+        id: id
+        run: |
+          LAST=$(ls rfcs/RFC-* -1d 2>/dev/null | wc -l)
+          NEXT=$((LAST+1))
+          ID="RFC-$(printf "%03d" $NEXT)"
+          echo "id=$ID" >> $GITHUB_OUTPUT
+
+      - name: Create RFC skeleton
+        run: |
+          ID=${{ steps.id.outputs.id }}
+          TITLE=${{ steps.fields.outputs.title }}
+          AUTHOR=${{ steps.fields.outputs.author }}
+          DATE=${{ steps.fields.outputs.date }}
+
+          DIR="rfcs/$ID-${TITLE// /-}"
+          mkdir -p "$DIR/diagrams" "$DIR/design" "$DIR/notes"
+
+          # Main RFC doc
+          cat > "$DIR/$ID-${TITLE// /-}.md" <<EOF
+# $ID: $TITLE
+
+## 📌 Metadata
+- **RFC ID**: $ID
+- **Title**: $TITLE
+- **Author(s)**: $AUTHOR
+- **Created Date**: $DATE
+- **Status**: Draft
+- **Version**: v1.0
+- **Squads**: TBD
+
+---
+
+## 1. Motivation
+(TODO)
+
+## 2. Background / Context
+(TODO)
+
+## 3. Proposal
+(TODO – reference [./diagrams](./diagrams/) or [./design](./design/) if needed)
+
+## 4. Alternatives Considered
+(TODO)
+
+## 5. Impact Analysis
+(TODO)
+
+## 6. Risks & Mitigations
+(TODO)
+
+## 7. Implementation Plan
+(TODO – see [./design/HLD.md](./design/HLD.md), [./design/LLD.md](./design/LLD.md))
+
+## 8. Rollout & Monitoring
+(TODO – see [./design/Deployment.md](./design/Deployment.md))
+
+## 9. Changelog
+- v1.0 – Initial draft
+
+## 10. References
+(TODO – link related docs or see [./notes](./notes/))
+EOF
+
+          # Supporting docs
+          cat > "$DIR/design/HLD.md" <<EOF
+# High-Level Design (HLD)
+
+(TODO – architecture overview, data flow, dependencies)
+EOF
+
+          cat > "$DIR/design/LLD.md" <<EOF
+# Low-Level Design (LLD)
+
+(TODO – classes, APIs, DB schemas, error handling)
+EOF
+
+          cat > "$DIR/design/Deployment.md" <<EOF
+# Deployment / Rollout Strategy
+
+(TODO – rollout steps, monitoring, rollback plan)
+EOF
+
+          cat > "$DIR/diagrams/README.md" <<EOF
+# Diagrams for $ID
+
+(TODO – add architecture diagrams, sequence diagrams, flowcharts)
+EOF
+
+          cat > "$DIR/notes/meeting-notes.md" <<EOF
+# Meeting Notes for $ID
+
+(TODO – capture important discussion notes here)
+EOF
+
+          cat > "$DIR/notes/decisions-log.md" <<EOF
+# Decisions Log for $ID
+
+- $DATE: RFC created by $AUTHOR
+EOF
+
+          cat > "$DIR/README.md" <<EOF
+# $ID: $TITLE
+
+This folder contains all material related to **$ID**.
+
+## 📂 Structure
+- [RFC Document](./$ID-${TITLE// /-}.md)
+- [Diagrams](./diagrams/)
+- [Design Docs](./design/)
+- [Notes](./notes/)
+EOF
+
+      - name: Push branch
+        run: |
+          ID=${{ steps.id.outputs.id }}
+          TITLE=${{ steps.fields.outputs.title }}
+          BRANCH="rfc/${ID}-${TITLE// /-}"
+          git checkout -b "$BRANCH"
+          git add rfcs/
+          git commit -m "chore: add skeleton for $ID"
+          git push origin "$BRANCH"
+
+      - name: Create draft PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: "${{ steps.id.outputs.id }}: ${{ steps.fields.outputs.title }}"
+          branch: "rfc/${{ steps.id.outputs.id }}-${{ steps.fields.outputs.title// /- }}"
+          draft: true
+          body: |
+            Auto-generated RFC skeleton from [issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }})
+
+            **Author**: @${{ steps.fields.outputs.author }}
+            **Status**: Draft

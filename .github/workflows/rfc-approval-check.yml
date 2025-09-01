@@ -1,0 +1,76 @@
+name: RFC Review Approval Check
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, review_requested, review_submitted]
+
+jobs:
+  enforce-approvals:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Find RFC file
+        id: rfc
+        run: |
+          # Grab first RFC markdown file touched in PR
+          RFC_FILE=$(git diff --name-only origin/main | grep -m1 'rfcs/.*/RFC-.*\.md')
+          echo "file=$RFC_FILE" >> $GITHUB_OUTPUT
+          echo "RFC_FILE=$RFC_FILE"
+
+      - name: Parse squads from metadata
+        id: squads
+        run: |
+          FILE=${{ steps.rfc.outputs.file }}
+          SQUADS=$(grep -m1 "Squads" "$FILE" | cut -d':' -f2- | tr ',' '\n' | xargs)
+          echo "squads=$SQUADS" >> $GITHUB_OUTPUT
+          echo "Required squads: $SQUADS"
+
+      - name: Load reviewers config
+        id: reviewers
+        run: |
+          SQUADS="${{ steps.squads.outputs.squads }}"
+          REQUIRED=""
+          for squad in $SQUADS; do
+            REVIEWERS=$(yq ".${squad,,}.reviewers[]" .github/squad-reviewers.yml | xargs || true)
+            if [ -n "$REVIEWERS" ]; then
+              echo "$squad:$REVIEWERS" >> reviewers.txt
+              REQUIRED="$REQUIRED $squad"
+            fi
+          done
+          echo "required=$REQUIRED" >> $GITHUB_OUTPUT
+          cat reviewers.txt || true
+
+      - name: Fetch PR approvals
+        id: approvals
+        run: |
+          APPROVERS=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
+            --jq '.[] | select(.state=="APPROVED") | .user.login' | sort -u)
+          echo "approvers=$APPROVERS" >> $GITHUB_OUTPUT
+          echo "Approvers: $APPROVERS"
+
+      - name: Validate squad approvals
+        run: |
+          APPROVERS="${{ steps.approvals.outputs.approvers }}"
+          MISSING=""
+          while IFS=: read -r squad reviewers; do
+            HIT="no"
+            for r in $reviewers; do
+              if echo "$APPROVERS" | grep -qw "$r"; then
+                HIT="yes"
+                break
+              fi
+            done
+            if [ "$HIT" = "no" ]; then
+              MISSING="$MISSING $squad"
+            fi
+          done < reviewers.txt
+
+          if [ -n "$MISSING" ]; then
+            echo "❌ Missing approvals from squads:$MISSING"
+            exit 1
+          else
+            echo "✅ All required squads approved!"
+          fi

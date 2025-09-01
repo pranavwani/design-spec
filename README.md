@@ -1,46 +1,94 @@
-# design-spec
+# 📘 Design Specs Repository (RFCs)
 
-A repository to propose, review, and track **RFCs (Request for Comments)** for our architecture and SDK designs.
+[![Docs Live](https://img.shields.io/badge/docs-live-brightgreen)](https://your-org.github.io/design-specs/)
+[![RFCs](https://img.shields.io/badge/RFCs-0-blue)](./RFC_INDEX.md)
+[![Active](https://img.shields.io/badge/Active-0-green)](./RFC_INDEX.md)
+[![In Progress](https://img.shields.io/badge/In%20Progress-0-yellow)](./IN_PROGRESS_INDEX.md)
+[![Archived](https://img.shields.io/badge/Archived-0-lightgrey)](./archive/RFC_ARCHIVE_INDEX.md)
 
----
-
-## 📌 How it works
-1. Submit a new RFC → creates a draft under `/rfcs/NNNN-slug/`.
-2. Discuss and review via Pull Request.
-3. When merged:
-   - ✅ Accepted RFCs move to `/specs/NNNN-slug/`
-   - ❌ Rejected RFCs move to `/rejected/NNNN-slug/`
-   - Index is auto-updated in [`RFC_INDEX.md`](./RFC_INDEX.md)
-   - Site is published at: [🌐 RFCs Portal](https://<username>.github.io/design-spec/)
+This repository contains **design specifications (RFCs)** for features, architecture decisions, and technical improvements.
+RFCs capture the **why and how** behind important changes and ensure cross-squad visibility.
 
 ---
 
-## 📝 Submitting
-- 👉 [Submit a new RFC](../../issues/new?template=new_rfc.yml&labels=rfc)
-- Draft RFCs live under `/rfcs/NNNN-slug/`.
+## 📌 Purpose
 
-Each RFC folder should contain:
-- `rfc.md` (the proposal itself, with metadata)
-- Optionally: `hld.md`, `lld.md`, `api.md`, `security.md`, etc.
+* Provide a structured process for **submitting, reviewing, and maintaining** RFCs.
+* Ensure **cross-squad participation** (Foundry, SDK, Iris, Flare).
+* Maintain a **historical record** of design evolution.
 
 ---
 
-## 📂 Structure
+## 📑 RFC Overview
+
+* [Active RFCs](./RFC_INDEX.md)
+* [In Progress RFCs](./IN_PROGRESS_INDEX.md)
+* [Archived RFCs](./archive/RFC_ARCHIVE_INDEX.md)
+
+👉 See the full [Process Guide](./PROCESS.md) for lifecycle details.
+
+---
+
+## 📝 How to Propose a New RFC
+
+1. Open a new RFC proposal using the **[RFC Proposal Form](../../issues/new?template=rfc-proposal.yml)**.
+2. Automation will:
+
+   * Create a new branch + RFC skeleton folder in [`/rfcs/`](./rfcs/).
+   * Pre-fill metadata (ID, title, author, date).
+   * Open a **draft PR** and assign squad reviewers automatically.
+3. Author updates the RFC doc + supporting files (`design/`, `diagrams/`, `notes/`).
+4. PR goes through cross-squad review until all required squads approve.
+5. Once merged → RFC is accepted and appears in the index.
+
+---
+
+## 📂 Repository Structure
+
+```
+design-specs/
+├── README.md                # Overview (this file)
+├── PROCESS.md               # Lifecycle & workflow details
+├── TEMPLATE.md              # Base template for RFCs
+├── CONTRIBUTING.md          # Quick-start guide for contributors
+├── RFC_INDEX.md             # Auto-generated: Active RFCs
+├── IN_PROGRESS_INDEX.md     # Auto-generated: In-progress RFCs
+├── rfcs/                    # Active RFC folders
+│   └── RFC-XYZ-title/
+│       ├── RFC-XYZ-title.md
+│       ├── design/
+│       ├── diagrams/
+│       └── notes/
+└── archive/                 # Archived RFCs
+    ├── RFC_ARCHIVE_INDEX.md
+    └── RFC-000-old-approach/
 ```
 
-design-spec/
-├── rfcs/       # Draft RFCs
-├── specs/      # Accepted RFCs
-├── rejected/   # Rejected RFCs
-├── RFC\_INDEX.md  # Auto-generated index of all RFCs
-└── .github/workflows/  # Automation
+---
 
-```
+## 📊 Status Legend
+
+Each RFC has a **Status** field in its metadata:
+
+* `Draft` – Initial proposal, not yet in review
+* `In Review` – Under discussion with reviewers
+* `Approved` – Accepted and merged into repo
+* `Implemented` – Change has been delivered in codebase
+* `Superseded` – Replaced by a newer RFC
+* `Deprecated` – No longer relevant
 
 ---
 
-## 🔧 Automation
-- **RFC Bootstrap** → Creates new RFC folder + template.
-- **RFC Finalize** → Moves RFCs to `specs/` or `rejected/` when PR closes.
-- **RFC Index Generator** → Updates [`RFC_INDEX.md`](./RFC_INDEX.md).
-- **Publish to Pages** → Publishes to [GitHub Pages](https://<username>.github.io/design-spec/).
+## 📚 Documentation Portal
+
+The full RFC repository is browsable on **GitHub Pages**:
+
+👉 [RFC Docs Portal](https://your-org.github.io/design-specs/)
+
+Built with **MkDocs + Material theme**, with:
+
+* 🔍 Full-text search
+* 📊 Auto-updating indexes
+* 🖼️ Live Mermaid diagrams
+* 📂 Navigation synced with repo structure
+
