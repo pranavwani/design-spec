@@ -1,0 +1,55 @@
+name: RFC Proposal
+description: Submit a new RFC (Request for Comments) proposal
+title: "RFC Proposal: <short title>"
+labels: ["rfc", "proposal"]
+assignees: []
+
+body:
+  - type: input
+    id: title
+    attributes:
+      label: RFC Title
+      description: Short descriptive title
+      placeholder: "e.g. Caching Layer for API Responses"
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why is this change needed?
+      placeholder: "Explain the problem this RFC solves..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Background / Context
+      description: Current situation, related docs, assumptions.
+      placeholder: "What context should reviewers know?"
+    validations:
+      required: false
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: High-Level Proposal
+      description: Brief description of the solution.
+      placeholder: "Explain the proposed solution at a high level."
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: squads
+    attributes:
+      label: Impacted Squads
+      description: Which squads should review this RFC?
+      options:
+        - label: Foundry
+        - label: SDK
+        - label: Iris
+        - label: Flare
+    validations:
+      required: true
