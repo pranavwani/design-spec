@@ -1,12 +1,11 @@
 name: New RFC Auto Setup
 
 on:
-  issues:
-    types: [opened]
+  repository_dispatch:
+    types: [new-rfc-ready]
 
 jobs:
   create-rfc:
-    if: contains(github.event.issue.title, 'RFC Proposal:')
     runs-on: ubuntu-latest
 
     steps:
@@ -19,20 +18,15 @@ jobs:
       - name: Extract issue fields
         id: fields
         run: |
-          TITLE=$(echo "${{ github.event.issue.title }}" | sed 's/RFC Proposal: //')
-          AUTHOR="${{ github.event.issue.user.login }}"
+          TITLE=$(echo "${{ github.event.client_payload.issue.title }}" | sed 's/RFC Proposal: //')
+          AUTHOR=$(echo '${{ github.event.client_payload.issue.user.login }}')
           DATE=$(date +%F)
+          LABELS="${{ github.event.client_payload.labels }}"
 
           echo "title=$TITLE" >> $GITHUB_OUTPUT
           echo "author=$AUTHOR" >> $GITHUB_OUTPUT
           echo "date=$DATE" >> $GITHUB_OUTPUT
-
-      - name: Extract squads from labels
-        id: squads
-        run: |
-          SQUADS=$(echo '${{ toJson(github.event.issue.labels) }}' | jq -r '.[].name' | grep '^squad/' | sed 's/squad\///' | xargs)
-          echo "squads=$SQUADS" >> $GITHUB_OUTPUT
-          echo "Detected squads: $SQUADS"
+          echo "labels=$LABELS" >> $GITHUB_OUTPUT
 
       - name: Generate RFC ID
         id: id
@@ -48,7 +42,7 @@ jobs:
           TITLE=${{ steps.fields.outputs.title }}
           AUTHOR=${{ steps.fields.outputs.author }}
           DATE=${{ steps.fields.outputs.date }}
-          SQUADS=${{ steps.squads.outputs.squads }}
+          LABELS="${{ steps.fields.outputs.labels }}"
 
           DIR="rfcs/$ID-${TITLE// /-}"
           mkdir -p "$DIR/diagrams" "$DIR/design" "$DIR/notes"
@@ -63,13 +57,20 @@ cat > "$DIR/$ID-${TITLE// /-}.md" <<EOF
 - **Created Date**: $DATE
 - **Status**: Draft
 - **Version**: v1.0
-- **Squads**: ${SQUADS:-TBD}
+- **Squads**: ${LABELS:-TBD}
 
 ---
 ## 1. Motivation
 (TODO)
 ...
 EOF
+
+          echo "# High-Level Design (HLD)" > "$DIR/design/HLD.md"
+          echo "# Low-Level Design (LLD)" > "$DIR/design/LLD.md"
+          echo "# Deployment / Rollout Strategy" > "$DIR/design/Deployment.md"
+          echo "# Diagrams for $ID" > "$DIR/diagrams/README.md"
+          echo "# Meeting Notes for $ID" > "$DIR/notes/meeting-notes.md"
+          echo "# Decisions Log for $ID" > "$DIR/notes/decisions-log.md"
 
       - name: Push branch
         run: |
@@ -86,7 +87,8 @@ EOF
         run: |
           REVIEWERS=""
           CHECKLIST=""
-          for squad in ${{ steps.squads.outputs.squads }}; do
+          for label in ${{ steps.fields.outputs.labels }}; do
+            squad=$(echo $label | cut -d'/' -f2)
             r=$(yq ".${squad}.reviewers[]" .github/squad-reviewers.yml | xargs || true)
             REVIEWERS="$REVIEWERS $r"
             CHECKLIST="$CHECKLIST\n- [ ] ${squad^} review"
@@ -103,15 +105,29 @@ EOF
           labels: |
             rfc
             proposal
-            ${{ steps.squads.outputs.squads }}
+            ${{ steps.fields.outputs.labels }}
           reviewers: ${{ steps.reviewers.outputs.reviewers }}
           body: |
-            Auto-generated RFC skeleton from [issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }})
+            Auto-generated RFC skeleton from [issue #${{ github.event.client_payload.issue.number }}](${{ github.event.client_payload.issue.html_url }})
 
             **Author**: @${{ steps.fields.outputs.author }}  
-            **Squads**: ${{ steps.squads.outputs.squads }}  
+            **Squads**: ${{ steps.fields.outputs.labels }}  
             **Status**: Draft  
 
             ---
             ## ✅ Review Checklist
             ${{ steps.reviewers.outputs.checklist }}
+            
+      - name: Comment on original issue with PR link
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUM=${{ github.event.client_payload.issue.number }}
+          PR_URL=$(gh pr list --head "rfc/${{ steps.id.outputs.id }}-${{ steps.fields.outputs.title// /- }}" --json url -q '.[0].url')
+
+          if [ -n "$PR_URL" ]; then
+            gh issue comment $ISSUE_NUM --body "📌 RFC skeleton has been generated: [$PR_URL]($PR_URL)"
+          else
+            echo "⚠️ Could not find PR URL"
+          fi

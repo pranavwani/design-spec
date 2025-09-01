@@ -92,3 +92,17 @@ jobs:
           else
             echo "✅ All required squads approved!"
           fi
+
+      - name: Close original issue on merge
+        if: github.event.action == 'closed' && github.event.pull_request.merged == true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Extract original issue number from PR body
+          ISSUE_NUM=$(echo "${{ github.event.pull_request.body }}" | grep -oE 'issue #[0-9]+' | cut -d'#' -f2 | head -n1)
+
+          if [ -n "$ISSUE_NUM" ]; then
+            gh issue close $ISSUE_NUM --comment "✅ RFC PR #${{ github.event.pull_request.number }} merged. RFC is now in status **Approved**."
+          else
+            echo "⚠️ No linked issue found in PR body"
+          fi
