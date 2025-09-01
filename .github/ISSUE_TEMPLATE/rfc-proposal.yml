@@ -41,15 +41,20 @@ body:
     validations:
       required: true
 
-  - type: checkboxes
+  - type: dropdown
     id: squads
     attributes:
       label: Impacted Squads
-      description: Which squads should review this RFC?
+      description: Select one or more squads this RFC affects
+      multiple: true
       options:
         - label: Foundry
+          value: squad/foundry
         - label: SDK
+          value: squad/sdk
         - label: Iris
+          value: squad/iris
         - label: Flare
+          value: squad/flare
     validations:
       required: true
