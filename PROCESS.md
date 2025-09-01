@@ -16,6 +16,26 @@ All steps are automated with GitHub Actions — authors focus on **content**, au
 
 ---
 
+```mermaid
+flowchart TD
+    A[Contributor submits RFC Proposal Issue] --> B[RFC Squad Labeler Workflow]
+    B -->|Applies squad labels| C[Dispatches new-rfc-ready event]
+    C --> D[RFC Skeleton Generator Workflow]
+    D -->|Creates branch + skeleton| E[Draft PR opened]
+    E -->|Labels & Reviewers assigned| F[Squad Review Process]
+    F -->|Approvals collected| G[Checklist auto-updated]
+    G -->|All squads approved| H[PR merged]
+    H -->|Workflow updates status| I[Status = Approved in RFC file]
+    H --> J[Original Issue closed with ✅ comment]
+    I --> K[Indexes & badges updated automatically]
+    K --> L[Docs site refreshed MkDocs/GitHub Pages]
+    I -->|Later marked Superseded/Deprecated| M[Archive Workflow]
+    M --> N[RFC folder moved to /archive/]
+    N --> K
+```
+
+---
+
 ## 📝 Step 1 — Proposing a New RFC
 
 * Open a new issue using the **[RFC Proposal form](../../issues/new?template=rfc-proposal.yml)**.
