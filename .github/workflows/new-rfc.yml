@@ -13,6 +13,9 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Install yq
+        run: sudo apt-get update && sudo apt-get install -y yq jq
+
       - name: Extract issue fields
         id: fields
         run: |
@@ -27,7 +30,7 @@ jobs:
       - name: Extract squads from labels
         id: squads
         run: |
-          SQUADS=$(echo '${{ toJson(github.event.issue.labels) }}' | jq -r '.[].name' | grep '^squad/' | xargs)
+          SQUADS=$(echo '${{ toJson(github.event.issue.labels) }}' | jq -r '.[].name' | grep '^squad/' | sed 's/squad\///' | xargs)
           echo "squads=$SQUADS" >> $GITHUB_OUTPUT
           echo "Detected squads: $SQUADS"
 
@@ -65,42 +68,8 @@ cat > "$DIR/$ID-${TITLE// /-}.md" <<EOF
 ---
 ## 1. Motivation
 (TODO)
-
-## 2. Background / Context
-(TODO)
-
-## 3. Proposal
-(TODO – reference [./diagrams](./diagrams/) or [./design](./design/))
-
-## 4. Alternatives Considered
-(TODO)
-
-## 5. Impact Analysis
-(TODO)
-
-## 6. Risks & Mitigations
-(TODO)
-
-## 7. Implementation Plan
-(TODO – see [./design/HLD.md](./design/HLD.md), [./design/LLD.md](./design/LLD.md))
-
-## 8. Rollout & Monitoring
-(TODO – see [./design/Deployment.md](./design/Deployment.md))
-
-## 9. Changelog
-- v1.0 – Initial draft
-
-## 10. References
-(TODO – link related docs or see [./notes](./notes/))
+...
 EOF
-
-          # Supporting docs
-          echo "# High-Level Design (HLD)" > "$DIR/design/HLD.md"
-          echo "# Low-Level Design (LLD)" > "$DIR/design/LLD.md"
-          echo "# Deployment / Rollout Strategy" > "$DIR/design/Deployment.md"
-          echo "# Diagrams for $ID" > "$DIR/diagrams/README.md"
-          echo "# Meeting Notes for $ID" > "$DIR/notes/meeting-notes.md"
-          echo "# Decisions Log for $ID" > "$DIR/notes/decisions-log.md"
 
       - name: Push branch
         run: |
@@ -112,16 +81,37 @@ EOF
           git commit -m "chore: add skeleton for $ID"
           git push origin "$BRANCH"
 
+      - name: Collect reviewers from squads
+        id: reviewers
+        run: |
+          REVIEWERS=""
+          CHECKLIST=""
+          for squad in ${{ steps.squads.outputs.squads }}; do
+            r=$(yq ".${squad}.reviewers[]" .github/squad-reviewers.yml | xargs || true)
+            REVIEWERS="$REVIEWERS $r"
+            CHECKLIST="$CHECKLIST\n- [ ] ${squad^} review"
+          done
+          echo "reviewers=$REVIEWERS" >> $GITHUB_OUTPUT
+          echo "checklist=$CHECKLIST" >> $GITHUB_OUTPUT
+
       - name: Create draft PR
         uses: peter-evans/create-pull-request@v6
         with:
           title: "${{ steps.id.outputs.id }}: ${{ steps.fields.outputs.title }}"
           branch: "rfc/${{ steps.id.outputs.id }}-${{ steps.fields.outputs.title// /- }}"
           draft: true
-          labels: ${{ steps.squads.outputs.squads }}
+          labels: |
+            rfc
+            proposal
+            ${{ steps.squads.outputs.squads }}
+          reviewers: ${{ steps.reviewers.outputs.reviewers }}
           body: |
             Auto-generated RFC skeleton from [issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }})
 
             **Author**: @${{ steps.fields.outputs.author }}  
             **Squads**: ${{ steps.squads.outputs.squads }}  
-            **Status**: Draft
+            **Status**: Draft  
+
+            ---
+            ## ✅ Review Checklist
+            ${{ steps.reviewers.outputs.checklist }}

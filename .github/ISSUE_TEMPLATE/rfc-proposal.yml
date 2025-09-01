@@ -41,20 +41,23 @@ body:
     validations:
       required: true
 
-  - type: dropdown
+  - type: checkboxes
     id: squads
     attributes:
       label: Impacted Squads
-      description: Select one or more squads this RFC affects
-      multiple: true
+      description: Select all squads this RFC affects
       options:
         - label: Foundry
+          required: false
           value: squad/foundry
         - label: SDK
+          required: false
           value: squad/sdk
         - label: Iris
+          required: false
           value: squad/iris
         - label: Flare
+          required: false
           value: squad/flare
     validations:
       required: true

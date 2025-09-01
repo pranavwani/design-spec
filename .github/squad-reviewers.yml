@@ -1,0 +1,16 @@
+foundry:
+  reviewers:
+    - alice
+    - bob
+
+sdk:
+  reviewers:
+    - charlie
+
+iris:
+  reviewers:
+    - diana
+
+flare:
+  reviewers:
+    - elena

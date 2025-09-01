@@ -21,7 +21,6 @@ jobs:
             exit 0
           fi
           echo "file=$RFC_FILE" >> $GITHUB_OUTPUT
-          echo "RFC_FILE=$RFC_FILE"
 
       - name: Parse squads from metadata
         id: squads
@@ -29,22 +28,18 @@ jobs:
           FILE=${{ steps.rfc.outputs.file }}
           SQUADS=$(grep -m1 "Squads" "$FILE" | cut -d':' -f2- | tr ',' '\n' | xargs)
           echo "squads=$SQUADS" >> $GITHUB_OUTPUT
-          echo "Required squads: $SQUADS"
 
       - name: Load reviewers config
         id: reviewers
         run: |
           SQUADS="${{ steps.squads.outputs.squads }}"
-          REQUIRED=""
           > reviewers.txt
           for squad in $SQUADS; do
             REVIEWERS=$(yq ".${squad,,}.reviewers[]" .github/squad-reviewers.yml | xargs || true)
             if [ -n "$REVIEWERS" ]; then
               echo "$squad:$REVIEWERS" >> reviewers.txt
-              REQUIRED="$REQUIRED $squad"
             fi
           done
-          echo "required=$REQUIRED" >> $GITHUB_OUTPUT
           cat reviewers.txt || true
 
       - name: Fetch PR approvals
@@ -55,10 +50,18 @@ jobs:
           echo "approvers=$APPROVERS" >> $GITHUB_OUTPUT
           echo "Approvers: $APPROVERS"
 
-      - name: Validate squad approvals
+      - name: Validate squad approvals & update checklist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           APPROVERS="${{ steps.approvals.outputs.approvers }}"
+          PR_NUM=${{ github.event.pull_request.number }}
+
+          BODY=$(gh api repos/${{ github.repository }}/pulls/$PR_NUM --jq '.body')
+
           MISSING=""
+          UPDATED="$BODY"
+
           while IFS=: read -r squad reviewers; do
             HIT="no"
             for r in $reviewers; do
@@ -67,69 +70,25 @@ jobs:
                 break
               fi
             done
-            if [ "$HIT" = "no" ]; then
+
+            if [ "$HIT" = "yes" ]; then
+              # Tick checklist item for squad
+              UPDATED=$(echo "$UPDATED" | sed "s/- \[ \] ${squad^} review/- [x] ${squad^} review/")
+            else
               MISSING="$MISSING $squad"
+              UPDATED=$(echo "$UPDATED" | sed "s/- \[x\] ${squad^} review/- [ ] ${squad^} review/")
             fi
           done < reviewers.txt
+
+          # Update PR body if changed
+          if [ "$UPDATED" != "$BODY" ]; then
+            gh api repos/${{ github.repository }}/pulls/$PR_NUM \
+              -X PATCH -f body="$UPDATED"
+          fi
 
           if [ -n "$MISSING" ]; then
             echo "❌ Missing approvals from squads:$MISSING"
             exit 1
           else
             echo "✅ All required squads approved!"
-          fi
-
-      - name: Update RFC Status
-        id: status
-        if: always()
-        run: |
-          FILE=${{ steps.rfc.outputs.file }}
-          [ -z "$FILE" ] && exit 0
-
-          STATE="${{ github.event.action }}"
-          MERGED="${{ github.event.pull_request.merged }}"
-          STATUS="Draft"
-
-          if [ "$STATE" = "opened" ] || [ "$STATE" = "review_requested" ] || [ "$STATE" = "review_submitted" ]; then
-            STATUS="In Review"
-          elif [ "$STATE" = "closed" ] && [ "$MERGED" = "true" ]; then
-            STATUS="Approved"
-          elif [ "$STATE" = "closed" ]; then
-            STATUS="Rejected"
-          fi
-
-          echo "new_status=$STATUS" >> $GITHUB_OUTPUT
-
-          echo "Updating $FILE → Status: $STATUS"
-          sed -i "s/^\(- \*\*Status\*\*:\).*/\1 $STATUS/" "$FILE"
-
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add "$FILE"
-          git commit -m "chore: update RFC status to $STATUS" || echo "No status change"
-          git push
-
-      - name: Comment status update on PR
-        if: always()
-        uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          header: rfc-status
-          message: |
-            🔄 RFC status updated: **${{ steps.status.outputs.new_status }}**
-
-      - name: Move Deprecated/Superseded RFCs
-        if: github.event.action == 'closed'
-        run: |
-          FILE=${{ steps.rfc.outputs.file }}
-          [ -z "$FILE" ] && exit 0
-
-          STATUS=$(grep -m1 "Status" "$FILE" | cut -d':' -f2- | xargs)
-          if [ "$STATUS" = "Deprecated" ] || [ "$STATUS" = "Superseded" ]; then
-            DIR=$(dirname "$FILE")
-            BASENAME=$(basename "$DIR")
-            echo "Moving $DIR → archive/$BASENAME"
-            mkdir -p archive
-            git mv "$DIR" "archive/$BASENAME"
-            git commit -m "chore: move $BASENAME to archive (status=$STATUS)"
-            git push
           fi
