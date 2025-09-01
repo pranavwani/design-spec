@@ -48,16 +48,8 @@ body:
       description: Select all squads this RFC affects
       options:
         - label: Foundry
-          required: false
-          value: squad/foundry
         - label: SDK
-          required: false
-          value: squad/sdk
         - label: Iris
-          required: false
-          value: squad/iris
         - label: Flare
-          required: false
-          value: squad/flare
     validations:
       required: true
