@@ -39,10 +39,3 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           labels: ${{ steps.squads.outputs.labels }}
-
-  trigger-skeleton:
-    needs: label-squads
-    uses: ./.github/workflows/new-rfc.yml
-    with:
-      issue: ${{ toJson(github.event.issue) }}
-      labels: ${{ needs.label-squads.outputs.labels }}
