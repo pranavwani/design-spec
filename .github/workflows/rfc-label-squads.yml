@@ -40,12 +40,17 @@ jobs:
 
       - name: Trigger RFC Skeleton Workflow
         if: steps.squads.outputs.labels != ''
-        uses: peter-evans/repository-dispatch@v3
+        uses: actions/github-script@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: new-rfc-ready
-          client-payload: |
-            {
-              "issue": ${{ toJson(github.event.issue) }},
-              "labels": "${{ steps.squads.outputs.labels }}"
-            }
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "new-rfc.yml",
+              ref: "main",
+              inputs: {
+                issue: JSON.stringify(context.payload.issue),
+                labels: "${{ steps.squads.outputs.labels }}"
+              }
+            })

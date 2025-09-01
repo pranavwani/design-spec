@@ -1,8 +1,14 @@
 name: New RFC Auto Setup
 
 on:
-  repository_dispatch:
-    types: [new-rfc-ready]
+  workflow_call:
+    inputs:
+      issue:
+        required: true
+        type: string
+      labels:
+        required: true
+        type: string
 
 jobs:
   create-rfc:
