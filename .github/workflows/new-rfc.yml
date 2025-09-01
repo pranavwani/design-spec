@@ -24,6 +24,13 @@ jobs:
           echo "author=$AUTHOR" >> $GITHUB_OUTPUT
           echo "date=$DATE" >> $GITHUB_OUTPUT
 
+      - name: Extract squads from labels
+        id: squads
+        run: |
+          SQUADS=$(echo '${{ toJson(github.event.issue.labels) }}' | jq -r '.[].name' | grep '^squad/' | xargs)
+          echo "squads=$SQUADS" >> $GITHUB_OUTPUT
+          echo "Detected squads: $SQUADS"
+
       - name: Generate RFC ID
         id: id
         run: |
@@ -38,12 +45,12 @@ jobs:
           TITLE=${{ steps.fields.outputs.title }}
           AUTHOR=${{ steps.fields.outputs.author }}
           DATE=${{ steps.fields.outputs.date }}
+          SQUADS=${{ steps.squads.outputs.squads }}
 
           DIR="rfcs/$ID-${TITLE// /-}"
           mkdir -p "$DIR/diagrams" "$DIR/design" "$DIR/notes"
 
-          # Main RFC doc
-          cat > "$DIR/$ID-${TITLE// /-}.md" <<EOF
+cat > "$DIR/$ID-${TITLE// /-}.md" <<EOF
 # $ID: $TITLE
 
 ## 📌 Metadata
@@ -53,10 +60,9 @@ jobs:
 - **Created Date**: $DATE
 - **Status**: Draft
 - **Version**: v1.0
-- **Squads**: TBD
+- **Squads**: ${SQUADS:-TBD}
 
 ---
-
 ## 1. Motivation
 (TODO)
 
@@ -64,7 +70,7 @@ jobs:
 (TODO)
 
 ## 3. Proposal
-(TODO – reference [./diagrams](./diagrams/) or [./design](./design/) if needed)
+(TODO – reference [./diagrams](./diagrams/) or [./design](./design/))
 
 ## 4. Alternatives Considered
 (TODO)
@@ -89,53 +95,12 @@ jobs:
 EOF
 
           # Supporting docs
-          cat > "$DIR/design/HLD.md" <<EOF
-# High-Level Design (HLD)
-
-(TODO – architecture overview, data flow, dependencies)
-EOF
-
-          cat > "$DIR/design/LLD.md" <<EOF
-# Low-Level Design (LLD)
-
-(TODO – classes, APIs, DB schemas, error handling)
-EOF
-
-          cat > "$DIR/design/Deployment.md" <<EOF
-# Deployment / Rollout Strategy
-
-(TODO – rollout steps, monitoring, rollback plan)
-EOF
-
-          cat > "$DIR/diagrams/README.md" <<EOF
-# Diagrams for $ID
-
-(TODO – add architecture diagrams, sequence diagrams, flowcharts)
-EOF
-
-          cat > "$DIR/notes/meeting-notes.md" <<EOF
-# Meeting Notes for $ID
-
-(TODO – capture important discussion notes here)
-EOF
-
-          cat > "$DIR/notes/decisions-log.md" <<EOF
-# Decisions Log for $ID
-
-- $DATE: RFC created by $AUTHOR
-EOF
-
-          cat > "$DIR/README.md" <<EOF
-# $ID: $TITLE
-
-This folder contains all material related to **$ID**.
-
-## 📂 Structure
-- [RFC Document](./$ID-${TITLE// /-}.md)
-- [Diagrams](./diagrams/)
-- [Design Docs](./design/)
-- [Notes](./notes/)
-EOF
+          echo "# High-Level Design (HLD)" > "$DIR/design/HLD.md"
+          echo "# Low-Level Design (LLD)" > "$DIR/design/LLD.md"
+          echo "# Deployment / Rollout Strategy" > "$DIR/design/Deployment.md"
+          echo "# Diagrams for $ID" > "$DIR/diagrams/README.md"
+          echo "# Meeting Notes for $ID" > "$DIR/notes/meeting-notes.md"
+          echo "# Decisions Log for $ID" > "$DIR/notes/decisions-log.md"
 
       - name: Push branch
         run: |
@@ -153,8 +118,10 @@ EOF
           title: "${{ steps.id.outputs.id }}: ${{ steps.fields.outputs.title }}"
           branch: "rfc/${{ steps.id.outputs.id }}-${{ steps.fields.outputs.title// /- }}"
           draft: true
+          labels: ${{ steps.squads.outputs.squads }}
           body: |
             Auto-generated RFC skeleton from [issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }})
 
-            **Author**: @${{ steps.fields.outputs.author }}
+            **Author**: @${{ steps.fields.outputs.author }}  
+            **Squads**: ${{ steps.squads.outputs.squads }}  
             **Status**: Draft
