@@ -1,9 +1,9 @@
 # 📘 Design Specs Repository (RFCs)
 
 [![Docs Live](https://img.shields.io/badge/docs-live-brightgreen)](https://your-org.github.io/design-specs/)
-[![RFCs](https://img.shields.io/badge/RFCs-3-blue)](./RFC_INDEX.md)
+[![RFCs](https://img.shields.io/badge/RFCs-4-blue)](./RFC_INDEX.md)
 [![Active](https://img.shields.io/badge/Active-1-green)](./RFC_INDEX.md)
-[![In Progress](https://img.shields.io/badge/In%20Progress-1-yellow)](./IN_PROGRESS_INDEX.md)
+[![In Progress](https://img.shields.io/badge/In%20Progress-2-yellow)](./IN_PROGRESS_INDEX.md)
 [![Archived](https://img.shields.io/badge/Archived-1-lightgrey)](./archive/RFC_ARCHIVE_INDEX.md)
 
 This repository contains **design specifications (RFCs)** for features, architecture decisions, and technical improvements.
