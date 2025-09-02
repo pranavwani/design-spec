@@ -1,16 +1,11 @@
 foundry:
-  reviewers:
-    - alice
-    - bob
+  reviewers: []
 
 sdk:
-  reviewers:
-    - charlie
+  reviewers: []
 
 iris:
-  reviewers:
-    - diana
+  reviewers: []
 
 flare:
-  reviewers:
-    - elena
+  reviewers: []
