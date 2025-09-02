@@ -82,23 +82,6 @@ jobs:
           echo "# Diagrams" > "$DIR/diagrams/README.md"
           echo "# Notes" > "$DIR/notes/README.md"
 
-
-      - name: Push branch
-        run: |
-          ID=${{ steps.id.outputs.id }}
-          TITLE="${{ steps.sanitize.outputs.title }}"
-          BRANCH="rfc/${ID}-${TITLE// /-}"
-          git checkout -b "$BRANCH"
-          
-          # ✅ Set bot identity for commits
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add rfcs/
-          git commit -m "chore: add skeleton for $ID"
-          git push origin "$BRANCH"
-
-
       - name: Collect reviewers from squads
         id: reviewers
         run: |
@@ -117,8 +100,9 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@v6
         with:
-          title: "${{ steps.id.outputs.id }}: ${{ steps.sanitize.outputs.title }}"
+          commit-message: "chore: add skeleton for ${{ steps.id.outputs.id }}"
           branch: "rfc/${{ steps.id.outputs.id }}-${{ steps.sanitize.outputs.title }}"
+          base: main
           draft: true
           labels: |
             rfc
