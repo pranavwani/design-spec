@@ -6,15 +6,15 @@
 This repository contains the **design specifications and RFCs** for our engineering projects.
 
 📖 **Full documentation is published here:**  
-👉 [Design Specs Portal](__PAGES_URL__)
+👉 [Design Specs Portal](https://pranavwani.github.io/design-spec)
 
 ---
 
 ## Quick Links
-- [Active RFCs](__PAGES_URL__/RFC_INDEX.md)
-- [In Progress RFCs](__PAGES_URL__/IN_PROGRESS_INDEX.md)
-- [Archived RFCs](__PAGES_URL__/archive/RFC_ARCHIVE_INDEX.md)
-- [Process](__PAGES_URL__/PROCESS.md)
+- [Active RFCs](./docs/RFC_INDEX.md)
+- [In Progress RFCs](./docs/IN_PROGRESS_INDEX.md)
+- [Archived RFCs](./docs/archive/RFC_ARCHIVE_INDEX.md)
+- [Process](./docs/PROCESS.md)
 
 ---
 
