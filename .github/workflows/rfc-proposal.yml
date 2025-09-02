@@ -134,7 +134,7 @@ EOF
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const issue_number = context.issue.number;
-            const pr_url = "${{ steps.cpr.outputs.pull-request-url }}";
+            const pr_url = "${{ steps.cpr.outputs['pull-request-url'] }}";
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
