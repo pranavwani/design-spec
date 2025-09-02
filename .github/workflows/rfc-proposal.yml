@@ -69,22 +69,19 @@ jobs:
           DIR="rfcs/$ID-${TITLE// /-}"
           mkdir -p "$DIR/diagrams" "$DIR/design" "$DIR/notes"
 
-          cat > "$DIR/$ID-${TITLE// /-}.md" <<EOF
-            # $ID: $TITLE
+          sed -e "s/{{ID}}/$ID/g" \
+              -e "s/{{TITLE}}/$TITLE/g" \
+              -e "s/{{AUTHOR}}/$AUTHOR/g" \
+              -e "s/{{DATE}}/$DATE/g" \
+              -e "s/{{LABELS}}/${LABELS:-TBD}/g" \
+              .github/templates/RFC_TEMPLATE.md > "$DIR/$ID-${TITLE// /-}.md"
 
-            ## 📌 Metadata
-            - **RFC ID**: $ID
-            - **Title**: $TITLE
-            - **Author(s)**: $AUTHOR
-            - **Created Date**: $DATE
-            - **Status**: Draft
-            - **Version**: v1.0
-            - **Squads**: ${LABELS:-TBD}
+          echo "# High-Level Design (HLD)" > "$DIR/design/HLD.md"
+          echo "# Low-Level Design (LLD)" > "$DIR/design/LLD.md"
+          echo "# Deployment / Rollout Strategy" > "$DIR/design/Deployment.md"
+          echo "# Diagrams" > "$DIR/diagrams/README.md"
+          echo "# Notes" > "$DIR/notes/README.md"
 
-            ---
-            ## 1. Motivation
-            (TODO)
-            EOF
 
       - name: Push branch
         run: |
