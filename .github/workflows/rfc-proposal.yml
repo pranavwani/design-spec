@@ -89,9 +89,15 @@ jobs:
           TITLE="${{ steps.sanitize.outputs.title }}"
           BRANCH="rfc/${ID}-${TITLE// /-}"
           git checkout -b "$BRANCH"
+          
+          # ✅ Set bot identity for commits
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
           git add rfcs/
           git commit -m "chore: add skeleton for $ID"
           git push origin "$BRANCH"
+
 
       - name: Collect reviewers from squads
         id: reviewers
