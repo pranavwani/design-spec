@@ -1,0 +1,23 @@
+name: Validate Docs Location
+
+on:
+  pull_request:
+    paths:
+      - "*.md"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Ensure no Markdown at root
+        run: |
+          ROOT_MD=$(find . -maxdepth 1 -type f -name "*.md" ! -name "README.md")
+          if [ -n "$ROOT_MD" ]; then
+            echo "❌ Found Markdown files at repo root (not allowed):"
+            echo "$ROOT_MD"
+            exit 1
+          fi
+          echo "✅ No stray Markdown files at root"
