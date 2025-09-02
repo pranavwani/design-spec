@@ -52,9 +52,15 @@ jobs:
           ID="RFC-$(printf "%03d" $NEXT)"
           echo "id=$ID" >> $GITHUB_OUTPUT
 
-      - name: Create RFC skeleton
+      - name: Prepare sanitized title
+        id: sanitize
         run: |
           TITLE=$(echo "${{ github.event.issue.title }}" | sed 's/RFC Proposal: //')
+          echo "title=$TITLE" >> $GITHUB_OUTPUT
+
+      - name: Create RFC skeleton
+        run: |
+          TITLE="${{ steps.sanitize.outputs.title }}"
           AUTHOR="${{ github.event.issue.user.login }}"
           DATE=$(date +%F)
           LABELS="${{ steps.squads.outputs.labels }}"
@@ -63,27 +69,27 @@ jobs:
           DIR="rfcs/$ID-${TITLE// /-}"
           mkdir -p "$DIR/diagrams" "$DIR/design" "$DIR/notes"
 
-          cat > "$DIR/$ID-${TITLE// /-}.md" <<'EOF'
-          # $ID: $TITLE
+          cat > "$DIR/$ID-${TITLE// /-}.md" <<EOF
+            # $ID: $TITLE
 
-          ## 📌 Metadata
-          - **RFC ID**: $ID
-          - **Title**: $TITLE
-          - **Author(s)**: $AUTHOR
-          - **Created Date**: $DATE
-          - **Status**: Draft
-          - **Version**: v1.0
-          - **Squads**: ${LABELS:-TBD}
+            ## 📌 Metadata
+            - **RFC ID**: $ID
+            - **Title**: $TITLE
+            - **Author(s)**: $AUTHOR
+            - **Created Date**: $DATE
+            - **Status**: Draft
+            - **Version**: v1.0
+            - **Squads**: ${LABELS:-TBD}
 
-          ---
-          ## 1. Motivation
-          (TODO)
-          EOF
+            ---
+            ## 1. Motivation
+            (TODO)
+            EOF
 
       - name: Push branch
         run: |
           ID=${{ steps.id.outputs.id }}
-          TITLE=$(echo "${{ github.event.issue.title }}" | sed 's/RFC Proposal: //')
+          TITLE="${{ steps.sanitize.outputs.title }}"
           BRANCH="rfc/${ID}-${TITLE// /-}"
           git checkout -b "$BRANCH"
           git add rfcs/
@@ -108,8 +114,8 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@v6
         with:
-          title: "${{ steps.id.outputs.id }}: $(echo "${{ github.event.issue.title }}" | sed 's/RFC Proposal: //')"
-          branch: "rfc/${{ steps.id.outputs.id }}-$(echo "${{ github.event.issue.title }}" | sed 's/RFC Proposal: //')"
+          title: "${{ steps.id.outputs.id }}: ${{ steps.sanitize.outputs.title }}"
+          branch: "rfc/${{ steps.id.outputs.id }}-${{ steps.sanitize.outputs.title }}"
           draft: true
           labels: |
             rfc
@@ -134,7 +140,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const issue_number = context.issue.number;
-            const pr_url = "${{ steps.cpr.outputs['pull-request-url'] }}";
+            const pr_url = "${{ steps.cpr.outputs.pull-request-url }}";
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
