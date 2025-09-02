@@ -11,7 +11,7 @@ This document explains how you can submit and maintain one.
 ## 📌 Before You Start
 
 * Read the [Process Guide](./PROCESS.md) → explains full lifecycle.
-* Familiarize yourself with the [RFC Template](./TEMPLATE.md).
+* Familiarize yourself with the [RFC Template](/TEMPLATE.md).
 
 ---
 
@@ -44,7 +44,7 @@ This document explains how you can submit and maintain one.
 
 ## ✍️ Writing the RFC
 
-* Fill in `RFC-XYZ-title.md` using [TEMPLATE.md](./TEMPLATE.md).
+* Fill in `RFC-XYZ-title.md` using [TEMPLATE.md](/TEMPLATE.md).
 * Use subfolders for supporting material:
 
   * **`/design/`** → HLD.md, LLD.md, Deployment.md

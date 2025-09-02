@@ -1,5 +1,8 @@
 # Design Specs (RFCs)
 
+[![Docs](https://img.shields.io/badge/docs-live-brightgreen)](__PAGES_URL__)
+[![Deploy Docs](https://github.com/__REPO_URL__/actions/workflows/deploy-docs.yml/badge.svg)](__REPO_URL__/actions/workflows/deploy-docs.yml)
+
 This repository contains the **design specifications and RFCs** for our engineering projects.
 
 📖 **Full documentation is published here:**  
