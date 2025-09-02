@@ -11,10 +11,12 @@ This repository contains the **design specifications and RFCs** for our engineer
 ---
 
 ## Quick Links
-- [Active RFCs](docs/RFC_INDEX.md)
-- [In Progress RFCs](docs/IN_PROGRESS_INDEX.md)
-- [Archived RFCs](docs/archive/RFC_ARCHIVE_INDEX.md)
-- [Process](docs/PROCESS.md)
+[![RFCs](https://img.shields.io/badge/RFCs-0-blue)](__PAGES_URL__/RFC_INDEX.md)
+[![Active](https://img.shields.io/badge/Active-0-green)](__PAGES_URL__/RFC_INDEX.md)
+[![In Progress](https://img.shields.io/badge/In%20Progress-0-yellow)](__PAGES_URL__/IN_PROGRESS_INDEX.md)
+[![Archived](https://img.shields.io/badge/Archived-0-lightgrey)](__PAGES_URL__/archive/RFC_ARCHIVE_INDEX.md)
+
+[📝 Submit RFC Proposal](__REPO_URL__/issues/new?template=rfc-proposal.yml)
 
 ---
 

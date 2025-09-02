@@ -5,9 +5,9 @@ on:
     branches:
       - main
     paths:
-      - "rfcs/**"
-      - "archive/**"
-      - "README.md"
+      - "docs/rfcs/**"
+      - "docs/archive/**"
+      - "docs/README.md"
 
   workflow_run:
     workflows: ["RFC PR Checks"]
@@ -30,9 +30,9 @@ jobs:
           ARCHIVED=0
           TOTAL=0
 
-          mkdir -p archive
+          mkdir -p docs/archive
 
-          for f in rfcs/RFC-*/RFC-*.md archive/RFC-*/RFC-*.md; do
+          for f in docs/rfcs/RFC-*/RFC-*.md docs/archive/RFC-*/RFC-*.md; do
             [ -f "$f" ] || continue
             TOTAL=$((TOTAL+1))
             STATUS=$(grep -m1 "Status" "$f" | cut -d':' -f2- | xargs)
@@ -51,32 +51,39 @@ jobs:
 
       - name: Generate Indexes
         run: |
-          echo "### 📑 Active RFCs" > RFC_INDEX.md
-          echo "" >> RFC_INDEX.md
-          echo "| RFC ID | Title | Status |" >> RFC_INDEX.md
-          echo "|--------|-------|--------|" >> RFC_INDEX.md
+          echo "### 📑 Active RFCs" > docs/RFC_INDEX.md
+          echo "" >> docs/RFC_INDEX.md
+          echo "| RFC ID | Title | Status |" >> docs/RFC_INDEX.md
+          echo "|--------|-------|--------|" >> docs/RFC_INDEX.md
 
-          echo "### 📑 In Progress RFCs" > IN_PROGRESS_INDEX.md
-          echo "" >> IN_PROGRESS_INDEX.md
-          echo "| RFC ID | Title | Status |" >> IN_PROGRESS_INDEX.md
-          echo "|--------|-------|--------|" >> IN_PROGRESS_INDEX.md
+          echo "### 📑 In Progress RFCs" > docs/IN_PROGRESS_INDEX.md
+          echo "" >> docs/IN_PROGRESS_INDEX.md
+          echo "| RFC ID | Title | Status |" >> docs/IN_PROGRESS_INDEX.md
+          echo "|--------|-------|--------|" >> docs/IN_PROGRESS_INDEX.md
 
-          echo "### 📑 Archived RFCs" > archive/RFC_ARCHIVE_INDEX.md
-          echo "" >> archive/RFC_ARCHIVE_INDEX.md
-          echo "| RFC ID | Title | Status |" >> archive/RFC_ARCHIVE_INDEX.md
-          echo "|--------|-------|--------|" >> archive/RFC_ARCHIVE_INDEX.md
+          echo "### 📑 Archived RFCs" > docs/archive/RFC_ARCHIVE_INDEX.md
+          echo "" >> docs/archive/RFC_ARCHIVE_INDEX.md
+          echo "| RFC ID | Title | Status |" >> docs/archive/RFC_ARCHIVE_INDEX.md
+          echo "|--------|-------|--------|" >> docs/archive/RFC_ARCHIVE_INDEX.md
 
-          for f in rfcs/RFC-*/RFC-*.md archive/RFC-*/RFC-*.md; do
+          for f in docs/rfcs/RFC-*/RFC-*.md docs/archive/RFC-*/RFC-*.md; do
             [ -f "$f" ] || continue
             ID=$(basename "$f" .md)
             TITLE=$(grep -m1 "^# " "$f" | sed 's/# //')
             STATUS=$(grep -m1 "Status" "$f" | cut -d':' -f2- | xargs)
-            row="| [$ID]($f) | $TITLE | ${STATUS:-Draft} |"
+
+            if [[ "$f" == docs/rfcs/* ]]; then
+              LINK_PATH=$(echo "$f" | sed 's|^docs/||')   # -> rfcs/...
+            else
+              LINK_PATH=$(echo "$f" | sed 's|^docs/||')   # -> archive/...
+            fi
+
+            row="| [$ID]($LINK_PATH) | $TITLE | ${STATUS:-Draft} |"
 
             case "$STATUS" in
-              Draft|In\ Review) echo "$row" >> IN_PROGRESS_INDEX.md ;;
-              Superseded|Deprecated) echo "$row" >> archive/RFC_ARCHIVE_INDEX.md ;;
-              *) echo "$row" >> RFC_INDEX.md ;;
+              Draft|In\ Review) echo "$row" >> docs/IN_PROGRESS_INDEX.md ;;
+              Superseded|Deprecated) echo "$row" >> docs/archive/RFC_ARCHIVE_INDEX.md ;;
+              *) echo "$row" >> docs/RFC_INDEX.md ;;
             esac
           done
 
@@ -87,15 +94,19 @@ jobs:
           PROGRESS=${{ steps.count.outputs.progress }}
           ARCHIVED=${{ steps.count.outputs.archived }}
 
-          sed -i "s|badge/RFCs-[0-9]\+-blue|badge/RFCs-${TOTAL}-blue|" README.md
-          sed -i "s|badge/Active-[0-9]\+-green|badge/Active-${ACTIVE}-green|" README.md
-          sed -i "s|badge/In%20Progress-[0-9]\+-yellow|badge/In%20Progress-${PROGRESS}-yellow|" README.md
-          sed -i "s|badge/Archived-[0-9]\+-lightgrey|badge/Archived-${ARCHIVED}-lightgrey|" README.md
+          # Docs site base (inject dynamically later if you use __PAGES_URL__)
+          PAGES_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}"
+
+          # Update badge lines in root README.md
+          sed -i "s|!\[RFCs.*|[![RFCs](https://img.shields.io/badge/RFCs-${TOTAL}-blue)](${PAGES_URL}/RFC_INDEX.md)|" README.md
+          sed -i "s|!\[Active.*|[![Active](https://img.shields.io/badge/Active-${ACTIVE}-green)](${PAGES_URL}/RFC_INDEX.md)|" README.md
+          sed -i "s|!\[InProgress.*|[![In Progress](https://img.shields.io/badge/In%20Progress-${PROGRESS}-yellow)](${PAGES_URL}/IN_PROGRESS_INDEX.md)|" README.md
+          sed -i "s|!\[Archived.*|[![Archived](https://img.shields.io/badge/Archived-${ARCHIVED}-lightgrey)](${PAGES_URL}/archive/RFC_ARCHIVE_INDEX.md)|" README.md
 
       - name: Commit changes
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add RFC_INDEX.md IN_PROGRESS_INDEX.md archive/RFC_ARCHIVE_INDEX.md README.md
+          git add docs/RFC_INDEX.md docs/IN_PROGRESS_INDEX.md docs/archive/RFC_ARCHIVE_INDEX.md README.md
           git commit -m "chore: update RFC indexes & badges" || echo "No changes"
           git push

@@ -24,21 +24,24 @@ jobs:
         run: |
           pip install mkdocs mkdocs-material mkdocs-awesome-pages-plugin mkdocs-mermaid2-plugin pymdown-extensions
 
-      - name: Inject repo URL
+      # 🔹 Inject dynamic URLs into docs + README
+      - name: Inject repo & pages URLs
         run: |
           REPO_URL="https://github.com/${GITHUB_REPOSITORY}"
           PAGES_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}"
-          
+
           echo "Injecting repo URL: $REPO_URL"
           echo "Injecting pages URL: $PAGES_URL"
 
           # Replace placeholders in mkdocs.yml
           sed -i "s|__REPO_URL__|$REPO_URL|g" mkdocs.yml
+          sed -i "s|__PAGES_URL__|$PAGES_URL|g" mkdocs.yml
 
-          # Replace placeholders in all docs
+          # Replace placeholders in docs
           find docs -type f -name '*.md' -exec sed -i "s|__REPO_URL__|$REPO_URL|g" {} +
-          
-          # Replace placeholders in root README.md
+          find docs -type f -name '*.md' -exec sed -i "s|__PAGES_URL__|$PAGES_URL|g" {} +
+
+          # Replace placeholders in root README
           sed -i "s|__REPO_URL__|$REPO_URL|g" README.md
           sed -i "s|__PAGES_URL__|$PAGES_URL|g" README.md
 
