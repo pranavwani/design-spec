@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: 📘 RFC Process Guide
-    url: https://github.com/your-org/design-spec/blob/main/PROCESS.md
+    url: https://github.com/pranavwani/design-spec/blob/main/docs/PROCESS.md
     about: Read how RFCs are proposed, reviewed, and approved
   - name: 📑 RFC Template
-    url: https://github.com/your-org/design-spec/blob/main/TEMPLATE.md
+    url: https://github.com/pranavwani/design-spec/blob/main/.github/templates/RFC_TEMPLATE.md
     about: Review the RFC template before drafting your proposal

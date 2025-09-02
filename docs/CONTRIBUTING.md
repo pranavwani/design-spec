@@ -11,13 +11,13 @@ This document explains how you can submit and maintain one.
 ## 📌 Before You Start
 
 * Read the [Process Guide](./PROCESS.md) → explains full lifecycle.
-* Familiarize yourself with the [RFC Template](/TEMPLATE.md).
+* Familiarize yourself with the [RFC Template](https://github.com/pranavwani/design-spec/blob/main/.github/templates/RFC_TEMPLATE.md).
 
 ---
 
 ## 📝 Submitting a New RFC
 
-1. Open a new issue using the **[RFC Proposal Form](../../issues/new?template=rfc-proposal.yml)**.
+1. Open a new issue using the **[RFC Proposal Form](https://github.com/pranavwani/design-spec/issues/new?template=rfc-proposal.yml)**.
 
    * Provide Title, Summary, Authors, Impacted Squads.
 
@@ -44,7 +44,7 @@ This document explains how you can submit and maintain one.
 
 ## ✍️ Writing the RFC
 
-* Fill in `RFC-XYZ-title.md` using [TEMPLATE.md](/TEMPLATE.md).
+* Fill in `RFC-XYZ-title.md`.
 * Use subfolders for supporting material:
 
   * **`/design/`** → HLD.md, LLD.md, Deployment.md

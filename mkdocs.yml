@@ -22,7 +22,6 @@ repo_url: https://github.com/your-org/design-specs
 nav:
   - Home: README.md
   - Process: PROCESS.md
-  - Template: TEMPLATE.md
   - Active RFCs: RFC_INDEX.md
   - In Progress RFCs: IN_PROGRESS_INDEX.md
   - Archived RFCs: archive/RFC_ARCHIVE_INDEX.md

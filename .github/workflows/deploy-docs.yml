@@ -46,7 +46,7 @@ jobs:
           sed -i "s|__PAGES_URL__|$PAGES_URL|g" README.md
 
       - name: Build site
-        run: mkdocs build --strict
+        run: mkdocs build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

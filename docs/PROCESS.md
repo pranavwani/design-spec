@@ -38,7 +38,7 @@ flowchart TD
 
 ## 📝 Step 1 — Proposing a New RFC
 
-* Open a new issue using the **[RFC Proposal form](../../issues/new?template=rfc-proposal.yml)**.
+* Open a new issue using the **[RFC Proposal form](https://github.com/pranavwani/design-spec/issues/new?template=rfc-proposal.yml)**.
 * Provide:
 
   * Title
