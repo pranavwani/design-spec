@@ -60,7 +60,7 @@ jobs:
 
       - name: Create RFC skeleton
         run: |
-          TITLE="${{ steps.sanitize.outputs.title }}"
+          TITLE=$(echo "${{ github.event.issue.title }}" | sed 's|RFC Proposal: ||')
           AUTHOR="${{ github.event.issue.user.login }}"
           DATE=$(date +%F)
           LABELS="${{ steps.squads.outputs.labels }}"
