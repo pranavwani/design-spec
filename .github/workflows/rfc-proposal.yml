@@ -60,7 +60,7 @@ jobs:
 
       - name: Create RFC skeleton
         run: |
-          TITLE=$(echo "${{ github.event.issue.title }}" | sed 's|RFC Proposal: ||')
+          TITLE="${{ steps.sanitize.outputs.title }}"
           AUTHOR="${{ github.event.issue.user.login }}"
           DATE=$(date +%F)
           LABELS="${{ steps.squads.outputs.labels }}"
@@ -69,11 +69,11 @@ jobs:
           DIR="rfcs/$ID-${TITLE// /-}"
           mkdir -p "$DIR/diagrams" "$DIR/design" "$DIR/notes"
 
-          sed -e "s/{{ID}}/$ID/g" \
-              -e "s/{{TITLE}}/$TITLE/g" \
-              -e "s/{{AUTHOR}}/$AUTHOR/g" \
-              -e "s/{{DATE}}/$DATE/g" \
-              -e "s/{{LABELS}}/${LABELS:-TBD}/g" \
+          sed -e "s|{{ID}}|$ID|g" \
+              -e "s|{{TITLE}}|$TITLE|g" \
+              -e "s|{{AUTHOR}}|$AUTHOR|g" \
+              -e "s|{{DATE}}|$DATE|g" \
+              -e "s|{{LABELS}}|${LABELS:-TBD}|g" \
               .github/templates/RFC_TEMPLATE.md > "$DIR/$ID-${TITLE// /-}.md"
 
           echo "# High-Level Design (HLD)" > "$DIR/design/HLD.md"
