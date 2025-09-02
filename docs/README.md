@@ -1,10 +1,10 @@
 # 📘 Design Specs Repository (RFCs)
 
-[![Docs Live](https://img.shields.io/badge/docs-live-brightgreen)](https://your-org.github.io/design-specs/)
-[![RFCs](https://img.shields.io/badge/RFCs-4-blue)](./RFC_INDEX.md)
-[![Active](https://img.shields.io/badge/Active-1-green)](./RFC_INDEX.md)
-[![In Progress](https://img.shields.io/badge/In%20Progress-2-yellow)](./IN_PROGRESS_INDEX.md)
-[![Archived](https://img.shields.io/badge/Archived-1-lightgrey)](./archive/RFC_ARCHIVE_INDEX.md)
+[![Docs Live](https://img.shields.io/badge/docs-live-brightgreen)](__PAGES_URL__)
+[![RFCs](https://img.shields.io/badge/RFCs-4-blue)](__PAGES_URL__/RFC_INDEX.md)
+[![Active](https://img.shields.io/badge/Active-1-green)](__PAGES_URL__/RFC_INDEX.md)
+[![In Progress](https://img.shields.io/badge/In%20Progress-2-yellow)](__PAGES_URL__/IN_PROGRESS_INDEX.md)
+[![Archived](https://img.shields.io/badge/Archived-1-lightgrey)](__PAGES_URL__/archive/RFC_ARCHIVE_INDEX.md)
 
 This repository contains **design specifications (RFCs)** for features, architecture decisions, and technical improvements.
 RFCs capture the **why and how** behind important changes and ensure cross-squad visibility.
@@ -21,23 +21,23 @@ RFCs capture the **why and how** behind important changes and ensure cross-squad
 
 ## 📑 RFC Overview
 
-* [Active RFCs](./RFC_INDEX.md)
-* [In Progress RFCs](./IN_PROGRESS_INDEX.md)
-* [Archived RFCs](./archive/RFC_ARCHIVE_INDEX.md)
+* [Active RFCs](__PAGES_URL__/RFC_INDEX.md)
+* [In Progress RFCs](__PAGES_URL__/IN_PROGRESS_INDEX.md)
+* [Archived RFCs](__PAGES_URL__/archive/RFC_ARCHIVE_INDEX.md)
 
-👉 See the full [Process Guide](./PROCESS.md) for lifecycle details.
+👉 See the full [Process Guide](__PAGES_URL__/PROCESS.md) for lifecycle details.
 
 ---
 
 ## 📝 How to Propose a New RFC
 
-1. Open a new RFC proposal using the **[RFC Proposal Form](../../issues/new?template=rfc-proposal.yml)**.
+1. Open a new RFC proposal using the **[RFC Proposal Form](__REPO_URL__/issues/new?template=rfc-proposal.yml)**.
 2. Automation will:
 
-   * Create a new branch + RFC skeleton folder in [`/rfcs/`](./rfcs/).
+   * Create a new branch + RFC skeleton folder in [`/rfcs/`](__REPO_URL__/tree/main/rfcs/).
    * Pre-fill metadata (ID, title, author, date).
    * Open a **draft PR** and assign squad reviewers automatically.
-3. Author updates the RFC doc + supporting files (`design/`, `diagrams/`, `notes/`).
+3. Author updates the RFC doc + supporting files (`design/README.md`, `diagrams/README.md`, `notes/README.md`).
 4. PR goes through cross-squad review until all required squads approve.
 5. Once merged → RFC is accepted and appears in the index.
 
@@ -46,22 +46,23 @@ RFCs capture the **why and how** behind important changes and ensure cross-squad
 ## 📂 Repository Structure
 
 ```
+
 design-specs/
 ├── README.md                # Overview (this file)
 ├── PROCESS.md               # Lifecycle & workflow details
-├── TEMPLATE.md              # Base template for RFCs
 ├── CONTRIBUTING.md          # Quick-start guide for contributors
-├── RFC_INDEX.md             # Auto-generated: Active RFCs
-├── IN_PROGRESS_INDEX.md     # Auto-generated: In-progress RFCs
+├── RFC\_INDEX.md             # Auto-generated: Active RFCs
+├── IN\_PROGRESS\_INDEX.md     # Auto-generated: In-progress RFCs
 ├── rfcs/                    # Active RFC folders
 │   └── RFC-XYZ-title/
 │       ├── RFC-XYZ-title.md
-│       ├── design/
-│       ├── diagrams/
-│       └── notes/
+│       ├── design/README.md
+│       ├── diagrams/README.md
+│       └── notes/README.md
 └── archive/                 # Archived RFCs
-    ├── RFC_ARCHIVE_INDEX.md
-    └── RFC-000-old-approach/
+├── RFC\_ARCHIVE\_INDEX.md
+└── RFC-000-old-approach/
+
 ```
 
 ---
@@ -83,7 +84,7 @@ Each RFC has a **Status** field in its metadata:
 
 The full RFC repository is browsable on **GitHub Pages**:
 
-👉 [RFC Docs Portal](https://your-org.github.io/design-specs/)
+👉 [RFC Docs Portal](__PAGES_URL__)
 
 Built with **MkDocs + Material theme**, with:
 
@@ -91,4 +92,3 @@ Built with **MkDocs + Material theme**, with:
 * 📊 Auto-updating indexes
 * 🖼️ Live Mermaid diagrams
 * 📂 Navigation synced with repo structure
-
