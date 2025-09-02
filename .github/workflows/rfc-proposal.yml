@@ -64,21 +64,21 @@ jobs:
           mkdir -p "$DIR/diagrams" "$DIR/design" "$DIR/notes"
 
           cat > "$DIR/$ID-${TITLE// /-}.md" <<'EOF'
-# $ID: $TITLE
+          # $ID: $TITLE
 
-## 📌 Metadata
-- **RFC ID**: $ID
-- **Title**: $TITLE
-- **Author(s)**: $AUTHOR
-- **Created Date**: $DATE
-- **Status**: Draft
-- **Version**: v1.0
-- **Squads**: ${LABELS:-TBD}
+          ## 📌 Metadata
+          - **RFC ID**: $ID
+          - **Title**: $TITLE
+          - **Author(s)**: $AUTHOR
+          - **Created Date**: $DATE
+          - **Status**: Draft
+          - **Version**: v1.0
+          - **Squads**: ${LABELS:-TBD}
 
----
-## 1. Motivation
-(TODO)
-EOF
+          ---
+          ## 1. Motivation
+          (TODO)
+          EOF
 
       - name: Push branch
         run: |
