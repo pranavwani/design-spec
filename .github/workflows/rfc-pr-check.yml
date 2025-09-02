@@ -15,7 +15,7 @@ jobs:
       - name: Find RFC file
         id: rfc
         run: |
-          RFC_FILE=$(git diff --name-only origin/main | grep -m1 'rfcs/.*/RFC-.*\.md' || true)
+          RFC_FILE=$(git diff --name-only origin/main | grep -m1 'docs/rfcs/.*/RFC-.*\.md' || true)
           if [ -z "$RFC_FILE" ]; then
             echo "No RFC file found in PR."
             exit 0

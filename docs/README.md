@@ -31,10 +31,10 @@ RFCs capture the **why and how** behind important changes and ensure cross-squad
 
 ## 📝 How to Propose a New RFC
 
-1. Open a new RFC proposal using the **[RFC Proposal Form](__REPO_URL__/issues/new?template=rfc-proposal.yml)**.
+1. Open a new RFC proposal using the **[RFC Proposal Form](/issues/new?template=rfc-proposal.yml)**.
 2. Automation will:
 
-   * Create a new branch + RFC skeleton folder in [`/rfcs/`](__REPO_URL__/tree/main/rfcs/).
+   * Create a new branch + RFC skeleton folder in [`/docs/rfcs/`](/tree/main/docs/rfcs/).
    * Pre-fill metadata (ID, title, author, date).
    * Open a **draft PR** and assign squad reviewers automatically.
 3. Author updates the RFC doc + supporting files (`design/README.md`, `diagrams/README.md`, `notes/README.md`).

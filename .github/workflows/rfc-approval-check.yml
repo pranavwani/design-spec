@@ -16,7 +16,7 @@ jobs:
         id: rfc
         run: |
           # Grab first RFC markdown file touched in PR
-          RFC_FILE=$(git diff --name-only origin/main | grep -m1 'rfcs/.*/RFC-.*\.md')
+          RFC_FILE=$(git diff --name-only origin/main | grep -m1 'docs/rfcs/.*/RFC-.*\.md')
           echo "file=$RFC_FILE" >> $GITHUB_OUTPUT
           echo "RFC_FILE=$RFC_FILE"
 

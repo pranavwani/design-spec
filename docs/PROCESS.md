@@ -50,7 +50,7 @@ flowchart TD
 👉 Automation will:
 
 * Create a new branch: `rfc/RFC-XYZ-title`
-* Generate a full boilerplate skeleton under `rfcs/RFC-XYZ-title/`
+* Generate a full boilerplate skeleton under `/docs/rfcs/RFC-XYZ-title/`
 * Pre-fill metadata (ID, Title, Author, Date, Status = Draft)
 * Open a **draft PR** and auto-assign squad reviewers
 

@@ -47,7 +47,7 @@ jobs:
       - name: Generate RFC ID
         id: id
         run: |
-          LAST=$(ls rfcs/RFC-* -1d 2>/dev/null | wc -l)
+          LAST=$(ls docs/rfcs/RFC-* -1d 2>/dev/null | wc -l)
           NEXT=$((LAST+1))
           ID="RFC-$(printf "%03d" $NEXT)"
           echo "id=$ID" >> $GITHUB_OUTPUT
@@ -66,7 +66,7 @@ jobs:
           LABELS="${{ steps.squads.outputs.labels }}"
           ID=${{ steps.id.outputs.id }}
 
-          DIR="rfcs/$ID-${TITLE// /-}"
+          DIR="docs/rfcs/$ID-${TITLE// /-}"
           mkdir -p "$DIR/diagrams" "$DIR/design" "$DIR/notes"
 
           sed -e "s|{{ID}}|$ID|g" \

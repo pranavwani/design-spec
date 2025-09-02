@@ -24,7 +24,7 @@ This document explains how you can submit and maintain one.
 2. Automation will:
 
    * Assign the next RFC ID.
-   * Create a **new branch** and **RFC skeleton folder** under `/rfcs/`.
+   * Create a **new branch** and **RFC skeleton folder** under `/docs/rfcs/`.
    * Pre-fill metadata (ID, Title, Author, Date, Status = Draft).
    * Open a **draft PR** and auto-assign squad reviewers.
 
