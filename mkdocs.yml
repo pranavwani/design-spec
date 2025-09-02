@@ -19,36 +19,6 @@ theme:
 repo_name: your-org/design-specs
 repo_url: https://github.com/your-org/design-specs
 
-plugins:
-  - search
-  - awesome-pages
-  - mermaid2
-  - mkdocs-simple-hooks:
-      hooks:
-        on_pre_build: |
-          import os
-          # Ensure RFC index files exist so MkDocs doesn’t break
-          for f in ["RFC_INDEX.md", "IN_PROGRESS_INDEX.md", "archive/RFC_ARCHIVE_INDEX.md"]:
-              if not os.path.exists(f):
-                  with open(f, "w") as fh:
-                      fh.write(f"## Placeholder for {f}\n")
-
-markdown_extensions:
-  - admonition
-  - codehilite
-  - footnotes
-  - toc:
-      permalink: true
-  - def_list
-  - abbr
-  - attr_list
-  - pymdownx.details
-  - pymdownx.superfences
-  - pymdownx.tabbed
-  - pymdownx.tasklist
-  - pymdownx.emoji
-  - pymdownx.magiclink
-
 nav:
   - Home: README.md
   - Process: PROCESS.md
@@ -56,3 +26,19 @@ nav:
   - Active RFCs: RFC_INDEX.md
   - In Progress RFCs: IN_PROGRESS_INDEX.md
   - Archived RFCs: archive/RFC_ARCHIVE_INDEX.md
+
+plugins:
+  - search
+  - awesome-pages
+  - mermaid2
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.emoji
+  - pymdownx.tasklist

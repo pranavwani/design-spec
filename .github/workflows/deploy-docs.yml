@@ -5,9 +5,6 @@ on:
     types: [closed]
     branches:
       - main
-    paths:
-      - '**.md'
-      - 'mkdocs.yml'
 
 jobs:
   build-deploy:
@@ -25,13 +22,7 @@ jobs:
 
       - name: Install MkDocs + Plugins
         run: |
-          pip install \
-            mkdocs \
-            mkdocs-material \
-            mkdocs-awesome-pages-plugin \
-            mkdocs-mermaid2-plugin \
-            mkdocs-simple-hooks \
-            pymdown-extensions
+          pip install mkdocs mkdocs-material mkdocs-awesome-pages-plugin mkdocs-mermaid2-plugin pymdown-extensions
 
       - name: Build site
         run: mkdocs build --strict
