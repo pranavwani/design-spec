@@ -1,7 +1,7 @@
 site_name: Design Specs (RFCs)
 site_description: Repository of design specifications (RFCs)
 site_url: https://your-org.github.io/design-specs/
-docs_dir: .
+docs_dir: docs
 
 theme:
   name: material
