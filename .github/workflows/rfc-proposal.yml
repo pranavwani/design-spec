@@ -63,7 +63,7 @@ jobs:
           DIR="rfcs/$ID-${TITLE// /-}"
           mkdir -p "$DIR/diagrams" "$DIR/design" "$DIR/notes"
 
-cat > "$DIR/$ID-${TITLE// /-}.md" <<EOF
+          cat > "$DIR/$ID-${TITLE// /-}.md" <<'EOF'
 # $ID: $TITLE
 
 ## 📌 Metadata
