@@ -1,7 +1,7 @@
 # Design Specs (RFCs)
 
-[![Docs](https://img.shields.io/badge/docs-live-brightgreen)](__PAGES_URL__)
-[![Deploy Docs](https://github.com/__REPO_SLUG__/actions/workflows/deploy-docs.yml/badge.svg)](https://github.com/__REPO_SLUG__/actions/workflows/deploy-docs.yml)
+[![Docs](https://img.shields.io/badge/docs-live-brightgreen)](https://pranavwani.github.io/design-spec)
+[![Deploy Docs](https://github.com/pranavwani/design-spec/actions/workflows/deploy-docs.yml/badge.svg)](https://github.com/pranavwani/design-spec/actions/workflows/deploy-docs.yml)
 
 This repository contains the **design specifications and RFCs** for our engineering projects.
 
@@ -20,6 +20,6 @@ This repository contains the **design specifications and RFCs** for our engineer
 
 ## Contributing
 To propose a new RFC:
-1. Open an issue with the [RFC Proposal form](__REPO_URL__/issues/new?template=rfc-proposal.yml).
+1. Open an issue with the [RFC Proposal form](https://github.com/pranavwani/design-spec/issues/new?template=rfc-proposal.yml).
 2. A workflow will generate a skeleton RFC and open a draft PR.
 3. Collaborate with reviewers until approval.
