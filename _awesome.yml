@@ -1,0 +1,8 @@
+nav:
+  - Home: README.md
+  - Process: PROCESS.md
+  - Active RFCs: RFC_INDEX.md
+  - In Progress RFCs: IN_PROGRESS_INDEX.md
+  - Archived: archive
+  - RFCs: rfcs
+  - Contributing: CONTRIBUTING.md
