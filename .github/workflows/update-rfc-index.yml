@@ -35,11 +35,13 @@ jobs:
           for f in docs/rfcs/RFC-*/RFC-*.md docs/archive/RFC-*/RFC-*.md; do
             [ -f "$f" ] || continue
             TOTAL=$((TOTAL+1))
-            STATUS=$(grep -m1 "Status" "$f" | cut -d':' -f2- | xargs)
+
+            STATUS=$(grep -m1 "Status" "$f" | cut -d':' -f2- | xargs || true)
+            STATUS=$(echo "$STATUS" | tr '[:upper:]' '[:lower:]')
 
             case "$STATUS" in
-              Draft|In\ Review) PROGRESS=$((PROGRESS+1)) ;;
-              Superseded|Deprecated) ARCHIVED=$((ARCHIVED+1)) ;;
+              draft|in\ review) PROGRESS=$((PROGRESS+1)) ;;
+              superseded|deprecated) ARCHIVED=$((ARCHIVED+1)) ;;
               *) ACTIVE=$((ACTIVE+1)) ;;
             esac
           done
@@ -70,7 +72,8 @@ jobs:
             [ -f "$f" ] || continue
             ID=$(basename "$f" .md)
             TITLE=$(grep -m1 "^# " "$f" | sed 's/# //')
-            STATUS=$(grep -m1 "Status" "$f" | cut -d':' -f2- | xargs)
+            STATUS=$(grep -m1 "Status" "$f" | cut -d':' -f2- | xargs || true)
+            STATUS_LOWER=$(echo "$STATUS" | tr '[:upper:]' '[:lower:]')
 
             if [[ "$f" == docs/rfcs/* ]]; then
               LINK_PATH=$(echo "$f" | sed 's|^docs/||')   # -> rfcs/...
@@ -80,9 +83,9 @@ jobs:
 
             row="| [$ID]($LINK_PATH) | $TITLE | ${STATUS:-Draft} |"
 
-            case "$STATUS" in
-              Draft|In\ Review) echo "$row" >> docs/IN_PROGRESS_INDEX.md ;;
-              Superseded|Deprecated) echo "$row" >> docs/archive/RFC_ARCHIVE_INDEX.md ;;
+            case "$STATUS_LOWER" in
+              draft|in\ review) echo "$row" >> docs/IN_PROGRESS_INDEX.md ;;
+              superseded|deprecated) echo "$row" >> docs/archive/RFC_ARCHIVE_INDEX.md ;;
               *) echo "$row" >> docs/RFC_INDEX.md ;;
             esac
           done
