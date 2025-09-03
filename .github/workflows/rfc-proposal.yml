@@ -105,7 +105,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           commit-message: "chore: add skeleton for ${{ steps.id.outputs.id }}"
-          branch: "rfc/${{ steps.id.outputs.id }}-${{ steps.sanitize.outputs.title }}"
+          branch: "rfc/${{ steps.id.outputs.id }}-${{ steps.sanitize.outputs.slug }}"
           base: main
           draft: true
           labels: |
