@@ -55,8 +55,12 @@ jobs:
       - name: Prepare sanitized title
         id: sanitize
         run: |
-          TITLE=$(echo "${{ github.event.issue.title }}" | sed 's/RFC Proposal: //')
-          echo "title=$TITLE" >> $GITHUB_OUTPUT
+          RAW_TITLE=$(echo "${{ github.event.issue.title }}" | sed 's/^RFC Proposal: //')
+          # Keep the readable TITLE for file names/docs
+          echo "title=$RAW_TITLE" >> $GITHUB_OUTPUT
+          # Create a slug: lowercase, replace spaces & invalid chars with '-'
+          SLUG=$(echo "$RAW_TITLE" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9-' '-')
+          echo "slug=$SLUG" >> $GITHUB_OUTPUT
 
       - name: Create RFC skeleton
         run: |
