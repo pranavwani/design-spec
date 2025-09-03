@@ -9,7 +9,7 @@ Welcome to the **Design Specs Repository** — the single source of truth for al
 - [📑 Active RFCs](./RFC_INDEX.md)  
 - [🟡 In Progress RFCs](./IN_PROGRESS_INDEX.md)  
 - [📦 Archived RFCs](./archive/RFC_ARCHIVE_INDEX.md)  
-- [📝 Submit RFC Proposal](__REPO_URL__/issues/new?template=rfc-proposal.yml)  
+- [📝 Submit RFC Proposal](/issues/new?template=rfc-proposal.yml)  
 - [⚙️ Process Guide](./PROCESS.md)  
 - [🤝 Contributing Guide](./CONTRIBUTING.md)  
 
